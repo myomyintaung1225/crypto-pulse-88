@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import './App.css';
 
@@ -36,6 +36,65 @@ function App() {
   const [countdown, setCountdown] = useState(0); 
   const [tradeResult, setTradeResult] = useState(null);
   const [nextTradeResult, setNextTradeResult] = useState('Random');
+  const [adminNewBalance, setAdminNewBalance] = useState('');
+  const [ohlcData, setOhlcData] = useState([]);
+  const [coinStats, setCoinStats] = useState(null);
+  const chartContainerRef = useRef(null);
+
+  const calculateRSI = (prices, period = 14) => {
+    if (prices.length < period) return 50;
+
+    let gains = 0;
+    let losses = 0;
+    for (let i = 1; i < period; i++) {
+      const diff = prices[i] - prices[i - 1];
+      if (diff > 0) gains += diff;
+      else losses -= diff;
+    }
+
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
+    if (avgLoss === 0) return 100;
+    const rs = avgGain / avgLoss;
+    return (100 - (100 / (1 + rs))).toFixed(2);
+  };
+
+  const CandlestickChart = ({ data, width, height }) => {
+    if (!data || data.length === 0) return <div style={{ color: '#999', textAlign: 'center', padding: '20px' }}>Loading chart...</div>;
+
+    const minPrice = Math.min(...data.map(d => d.low)) * 0.99;
+    const maxPrice = Math.max(...data.map(d => d.high)) * 1.01;
+    const range = maxPrice - minPrice;
+
+    const yScale = (price) => ((maxPrice - price) / range) * height;
+    const xScale = (index) => (index / (data.length - 1)) * width;
+
+    return (
+      <svg width={width} height={height} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+        {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => (
+          <line key={idx} x1="0" y1={yScale(minPrice + range * pct)} x2={width} y2={yScale(minPrice + range * pct)} stroke="#2b3139" strokeWidth="1" strokeDasharray="4" />
+        ))}
+        {data.map((candle, idx) => {
+          const x = xScale(idx);
+          const openY = yScale(candle.open);
+          const closeY = yScale(candle.close);
+          const highY = yScale(candle.high);
+          const lowY = yScale(candle.low);
+          const isGreen = candle.close >= candle.open;
+          const color = isGreen ? '#0ecb81' : '#f6465d';
+
+          return (
+            <g key={idx}>
+              <line x1={x} y1={highY} x2={x} y2={lowY} stroke={color} strokeWidth="2" opacity="0.6" />
+              <rect x={x - 3} y={Math.min(openY, closeY)} width={6} height={Math.max(1, Math.abs(closeY - openY))} fill={color} />
+            </g>
+          );
+        })}
+        <text x="5" y="15" fontSize="11" fill="#999">${maxPrice.toFixed(2)}</text>
+        <text x="5" y={height - 5} fontSize="11" fill="#999">${minPrice.toFixed(2)}</text>
+      </svg>
+    );
+  };
 
   const telegramLink = "https://t.me/PrimeBlockLTS";
 
@@ -55,9 +114,51 @@ function App() {
         .catch(err => console.error("Fetch error:", err));
     };
     fetchPrices();
-    const interval = setInterval(fetchPrices, 10000); 
+    const interval = setInterval(fetchPrices, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // --- FETCH OHLC DATA FOR CANDLESTICK CHART ---
+  useEffect(() => {
+    if (!selectedCoin) return;
+
+    const generateCandleData = async () => {
+      try {
+        const response = await fetch(`https://api.coingecko.com/api/v3/coins/${selectedCoin.id}/ohlc?vs_currency=usd&days=30`);
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          const formattedData = data.map((candle, idx) => ({
+            time: idx,
+            open: candle[1],
+            high: candle[2],
+            low: candle[3],
+            close: candle[4]
+          }));
+
+          setOhlcData(formattedData);
+
+          const closes = formattedData.map(c => c.close);
+          const highest = Math.max(...closes);
+          const lowest = Math.min(...closes);
+          const trend = formattedData[formattedData.length - 1].close >= formattedData[0].open ? 'up' : 'down';
+          const change = ((closes[closes.length - 1] - closes[0]) / closes[0] * 100).toFixed(2);
+
+          setCoinStats({
+            high24h: highest,
+            low24h: lowest,
+            trend,
+            changePercent: change,
+            rsi: calculateRSI(closes)
+          });
+        }
+      } catch (err) {
+        console.error("OHLC fetch error:", err);
+      }
+    };
+
+    generateCandleData();
+  }, [selectedCoin]);
 
   // --- AUTO-SAVE TO BROWSER ---
   useEffect(() => {
@@ -68,16 +169,35 @@ function App() {
 
   const handleAuth = (e) => {
     e.preventDefault();
-    if (authMode === 'signup') {
-      const newId = '88' + Math.floor(1000 + Math.random() * 9000);
-      setAllUsers({ ...allUsers, [newId]: { 
-        id: newId, email: authData.email, balance: 0, name: authData.name, pass: authData.password, pin: authData.pin 
-      }});
-      setActiveId(newId); setIsLoggedIn(true);
+    const existingUser = Object.values(allUsers).find(u => u.email === authData.email);
+
+    if (existingUser) {
+      if (existingUser.pass === authData.password) {
+        setActiveId(existingUser.id);
+        setIsLoggedIn(true);
+        alert("Welcome back!");
+      } else {
+        alert("Invalid Credentials");
+      }
     } else {
-      const user = Object.values(allUsers).find(u => u.email === authData.email && u.pass === authData.password);
-      if (user) { setActiveId(user.id); setIsLoggedIn(true); } else { alert("Invalid Credentials"); }
+      if (authMode === 'signup') {
+        const newId = '88' + Math.floor(1000 + Math.random() * 9000);
+        setAllUsers({ ...allUsers, [newId]: {
+          id: newId,
+          email: authData.email,
+          balance: 0,
+          name: authData.name,
+          pass: authData.password,
+          pin: authData.pin
+        }});
+        setActiveId(newId);
+        setIsLoggedIn(true);
+        alert("Account created successfully!");
+      } else {
+        alert("Email not found. Please sign up first.");
+      }
     }
+
     setShowAuth(false);
   };
 
@@ -171,14 +291,36 @@ function App() {
           <div className="live-price-top">${selectedCoin.current_price.toLocaleString()}</div>
         </header>
         {isTrading && <div className="countdown-overlay"><div className="timer-circle"><span className="time-left">{countdown}s</span></div></div>}
-        <div className="chart-container">
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={selectedCoin.sparkline_in_7d.price.map((p, i) => ({ t: i, v: p }))}>
-              <Area type="monotone" dataKey="v" stroke="#f0b90b" fill="rgba(240, 185, 11, 0.1)" strokeWidth={2} />
-              <YAxis hide domain={['auto', 'auto']} />
-            </AreaChart>
-          </ResponsiveContainer>
+        
+        {/* Market Stats */}
+        {coinStats && (
+          <div className="market-stats">
+            <div className={`stat-box ${coinStats.trend === 'up' ? 'trend-up' : 'trend-down'}`}>
+              <span className="stat-label">24h Trend</span>
+              <span className="stat-value">{coinStats.trend === 'up' ? '📈' : '📉'} {coinStats.changePercent}%</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-label">24h High</span>
+              <span className="stat-value">${coinStats.high24h.toLocaleString()}</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-label">24h Low</span>
+              <span className="stat-value">${coinStats.low24h.toLocaleString()}</span>
+            </div>
+            <div className={`stat-box ${coinStats.rsi > 70 ? 'overbought' : coinStats.rsi < 30 ? 'oversold' : ''}`}>
+              <span className="stat-label">RSI</span>
+              <span className="stat-value">{coinStats.rsi}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Candlestick Chart */}
+        <div className="chart-container" ref={chartContainerRef}>
+          <div style={{padding: '15px', fontSize: '12px', color: '#999', textAlign: 'center'}}>30-Day Candlestick Chart</div>
+          <CandlestickChart data={ohlcData} width={400} height={280} />
         </div>
+
+        {/* Trade Controls */}
         <div className="trade-controls">
           <div className="control-row">{[30, 60, 120].map(t => (<button key={t} className={tradeConfig.time === t ? 'active' : ''} onClick={() => setTradeConfig({...tradeConfig, time: t})}>{t}s</button>))}</div>
           <div className="amount-section">
@@ -253,10 +395,21 @@ function App() {
 
       {showAdmin && (
         <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowAdmin(false)}>×</button><h3>Admin Panel</h3>
-          <input className="login-input" placeholder="User ID" onChange={e => setAdminSearchId(e.target.value)} />
+          <input className="login-input" placeholder="User ID" onChange={e => {setAdminSearchId(e.target.value); setAdminNewBalance('');}} />
           {allUsers[adminSearchId] && (
-            <div><p>User: {allUsers[adminSearchId].name}</p>
-              <input className="login-input" placeholder="New Balance" onBlur={e => setAllUsers({...allUsers, [adminSearchId]: {...allUsers[adminSearchId], balance: Number(e.target.value)}})} />
+            <div>
+              <p style={{marginBottom: '10px'}}>User: {allUsers[adminSearchId].name}</p>
+              <p style={{marginBottom: '10px', fontSize: '12px', color: '#999'}}>Current Balance: ${allUsers[adminSearchId].balance.toFixed(2)}</p>
+              <input className="login-input" placeholder="New Balance" value={adminNewBalance} onChange={e => setAdminNewBalance(e.target.value)} />
+              <button className="buy-btn" style={{marginTop: '10px', marginBottom: '10px'}} onClick={() => {
+                if (adminNewBalance) {
+                  setAllUsers({...allUsers, [adminSearchId]: {...allUsers[adminSearchId], balance: Number(adminNewBalance)}});
+                  alert("Balance updated!");
+                  setAdminNewBalance('');
+                } else {
+                  alert("Please enter a balance amount");
+                }
+              }}>Update Balance</button>
               <select className="login-input" onChange={e => setNextTradeResult(e.target.value)}><option value="Random">Normal</option><option value="Win">Win Next</option><option value="Lose">Lose Next</option></select>
             </div>
           )}

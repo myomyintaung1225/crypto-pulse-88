@@ -101,12 +101,25 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .menu-icon { font-size: 28px; margin-bottom: 8px; }
 
 /* --- TRADE SCREEN --- */
-.trade-page { height: 100vh; display: flex; flex-direction: column; background: var(--bg-dark); position: relative; }
-.trade-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #2b3139; background: var(--card-bg); }
+.trade-page { height: 100vh; display: flex; flex-direction: column; background: var(--bg-dark); position: relative; overflow-y: auto; padding-bottom: 180px; }
+.trade-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #2b3139; background: var(--card-bg); position: sticky; top: 0; z-index: 10; }
 .live-price-top { font-size: 18px; font-weight: bold; color: var(--primary); }
-.chart-container { flex: 1; width: 100%; padding: 20px 0; }
 
-.trade-controls { background: var(--card-bg); padding: 20px; border-radius: 24px 24px 0 0; position: fixed; bottom: 0; width: 100%; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); z-index: 10; }
+/* --- MARKET STATS --- */
+.market-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; background: #1a1d21; }
+.stat-box { background: #2b3139; padding: 12px; border-radius: 10px; border-left: 3px solid var(--primary); display: flex; flex-direction: column; }
+.stat-box.trend-up { border-left-color: #0ecb81; }
+.stat-box.trend-down { border-left-color: #f6465d; }
+.stat-box.overbought { background: rgba(246, 70, 93, 0.1); border-left-color: #f6465d; }
+.stat-box.oversold { background: rgba(14, 203, 129, 0.1); border-left-color: #0ecb81; }
+.stat-label { font-size: 11px; color: #999; margin-bottom: 5px; text-transform: uppercase; }
+.stat-value { font-size: 14px; font-weight: bold; color: var(--text-main); }
+
+/* --- CANDLESTICK CHART --- */
+.chart-container { flex: 1; width: 100%; padding: 20px 15px; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(180deg, rgba(30,35,41,0.5) 0%, rgba(11,14,17,0.5) 100%); }
+.chart-container svg { max-width: 100%; height: auto; margin: 0 auto; }
+
+.trade-controls { background: var(--card-bg); padding: 20px; border-radius: 24px 24px 0 0; position: fixed; bottom: 0; width: 100%; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); z-index: 10; max-height: 180px; overflow-y: auto; }
 .control-row { display: flex; gap: 8px; margin-bottom: 15px; }
 .control-row button { flex: 1; background: #2b3139; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; }
 .control-row button.active { border: 1px solid var(--primary); color: var(--primary); background: rgba(240,185,11,0.05); }
