@@ -145,6 +145,7 @@ function App() {
       snapshot.forEach((doc) => {
         usersData[doc.id] = doc.data();
       });
+      console.log('Firestore users loaded:', Object.keys(usersData).length, 'users');
       setAllUsers(usersData);
       setIsLoadingUsers(false);
     });
@@ -215,6 +216,9 @@ function App() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+    console.log('Login attempt for email:', authData.email);
+    console.log('Available users:', Object.keys(allUsers).length);
+
     const existingUser = Object.values(allUsers).find(u => u.email === authData.email);
 
     if (existingUser) {
@@ -447,12 +451,20 @@ function App() {
       {/* --- MODALS --- */}
       {showAuth && (
         <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowAuth(false)}>×</button><h2>{authMode === 'login' ? 'Login' : 'Sign Up'}</h2>
-          <form onSubmit={handleAuth}>
-            {authMode === 'signup' && <input className="login-input" placeholder="Full Name" required onChange={e => setAuthData({...authData, name: e.target.value})} />}
-            <input className="login-input" type="email" placeholder="Email" required onChange={e => setAuthData({...authData, email: e.target.value})} />
-            <input className="login-input" type="password" placeholder="Password" required onChange={e => setAuthData({...authData, password: e.target.value})} />
-            {authMode === 'signup' && <input className="login-input" maxLength="4" placeholder="Withdrawal PIN (4 digits)" required onChange={e => setAuthData({...authData, pin: e.target.value})} />}
-            <button className="buy-btn" type="submit">{authMode === 'login' ? 'Sign In' : 'Register'}</button></form>
+          {isLoadingUsers ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div style={{ fontSize: '24px', marginBottom: '10px' }}>🔄</div>
+              <div>Loading user data...</div>
+            </div>
+          ) : (
+            <form onSubmit={handleAuth}>
+              {authMode === 'signup' && <input className="login-input" placeholder="Full Name" required onChange={e => setAuthData({...authData, name: e.target.value})} />}
+              <input className="login-input" type="email" placeholder="Email" required onChange={e => setAuthData({...authData, email: e.target.value})} />
+              <input className="login-input" type="password" placeholder="Password" required onChange={e => setAuthData({...authData, password: e.target.value})} />
+              {authMode === 'signup' && <input className="login-input" maxLength="4" placeholder="Withdrawal PIN (4 digits)" required onChange={e => setAuthData({...authData, pin: e.target.value})} />}
+              <button className="buy-btn" type="submit" disabled={isLoadingUsers}>{authMode === 'login' ? 'Sign In' : 'Register'}</button>
+            </form>
+          )}
           <p onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="toggle-auth">{authMode === 'login' ? 'Create Account' : 'Back to Login'}</p></div></div>
       )}
 
