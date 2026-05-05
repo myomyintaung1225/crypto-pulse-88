@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import './App.css';
+import { db } from './firebase';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  where
+} from 'firebase/firestore';
 
 function App() {
-  // --- DATA PERSISTENCE (LocalStorage) ---
-  const [allUsers, setAllUsers] = useState(() => {
-    const saved = localStorage.getItem('trading_users');
-    return saved ? JSON.parse(saved) : {
-      '88135': { id: '88135', email: 'admin@cp88.com', balance: 5000, name: 'Ben Admin', pass: '123', pin: '1111' }
-    };
-  });
-
+  // --- DATA PERSISTENCE (Firebase Firestore) ---
+  const [allUsers, setAllUsers] = useState({});
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [activeId, setActiveId] = useState(() => localStorage.getItem('active_user_id') || null);
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('is_logged_in') === 'true');
 
@@ -105,6 +111,48 @@ function App() {
     { id: 'apple', name: 'Apple Inc.', symbol: 'AAPL', current_price: 189.45, image: 'https://cdn-icons-png.flaticon.com/512/0/747.png', sparkline_in_7d: { price: [185, 187, 188, 190, 189.45] } }
   ];
 
+  // --- FIRESTORE INITIALIZATION ---
+  useEffect(() => {
+    // Initialize default admin user if not exists
+    const initializeDefaultUser = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const adminQuery = query(usersRef, where('email', '==', 'admin@cp88.com'));
+        const adminSnapshot = await getDocs(adminQuery);
+
+        if (adminSnapshot.empty) {
+          // Create default admin user
+          const adminData = {
+            id: '88135',
+            email: 'admin@cp88.com',
+            balance: 5000,
+            name: 'Ben Admin',
+            pass: '123',
+            pin: '1111',
+            createdAt: new Date()
+          };
+          await setDoc(doc(db, 'users', '88135'), adminData);
+        }
+      } catch (error) {
+        console.error('Error initializing default user:', error);
+      }
+    };
+
+    initializeDefaultUser();
+
+    // Real-time listener for all users
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersData = {};
+      snapshot.forEach((doc) => {
+        usersData[doc.id] = doc.data();
+      });
+      setAllUsers(usersData);
+      setIsLoadingUsers(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // --- LIVE PRICE TICKING (Updates every 10s) ---
   useEffect(() => {
     const fetchPrices = () => {
@@ -160,14 +208,13 @@ function App() {
     generateCandleData();
   }, [selectedCoin]);
 
-  // --- AUTO-SAVE TO BROWSER ---
+  // --- SESSION MANAGEMENT (LocalStorage) ---
   useEffect(() => {
-    localStorage.setItem('trading_users', JSON.stringify(allUsers));
     localStorage.setItem('active_user_id', activeId || '');
     localStorage.setItem('is_logged_in', isLoggedIn);
-  }, [allUsers, activeId, isLoggedIn]);
+  }, [activeId, isLoggedIn]);
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
     const existingUser = Object.values(allUsers).find(u => u.email === authData.email);
 
@@ -181,18 +228,26 @@ function App() {
       }
     } else {
       if (authMode === 'signup') {
-        const newId = '88' + Math.floor(1000 + Math.random() * 9000);
-        setAllUsers({ ...allUsers, [newId]: {
-          id: newId,
-          email: authData.email,
-          balance: 0,
-          name: authData.name,
-          pass: authData.password,
-          pin: authData.pin
-        }});
-        setActiveId(newId);
-        setIsLoggedIn(true);
-        alert("Account created successfully!");
+        try {
+          const newId = '88' + Math.floor(1000 + Math.random() * 9000);
+          const newUserData = {
+            id: newId,
+            email: authData.email,
+            balance: 0,
+            name: authData.name,
+            pass: authData.password,
+            pin: authData.pin,
+            createdAt: new Date()
+          };
+
+          await setDoc(doc(db, 'users', newId), newUserData);
+          setActiveId(newId);
+          setIsLoggedIn(true);
+          alert("Account created successfully!");
+        } catch (error) {
+          console.error('Error creating user:', error);
+          alert("Error creating account. Please try again.");
+        }
       } else {
         alert("Email not found. Please sign up first.");
       }
@@ -218,19 +273,24 @@ function App() {
       });
     }, 1000);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const mult = tradeConfig.time === 30 ? 0.15 : tradeConfig.time === 60 ? 0.30 : 0.50;
       let win = nextTradeResult === 'Win' ? true : nextTradeResult === 'Lose' ? false : Math.random() > 0.5;
       const change = win ? tradeConfig.amount * mult : -tradeConfig.amount;
-      
-      setAllUsers(prev => ({ 
-        ...prev, 
-        [activeId]: { ...prev[activeId], balance: prev[activeId].balance + change } 
-      }));
-      
-      setTradeResult({ win, change, asset: selectedCoin.symbol.toUpperCase() });
-      setIsTrading(false);
-      setCurrentPage('result');
+
+      try {
+        const userRef = doc(db, 'users', activeId);
+        const newBalance = allUsers[activeId].balance + change;
+        await updateDoc(userRef, { balance: newBalance });
+
+        setTradeResult({ win, change, asset: selectedCoin.symbol.toUpperCase() });
+        setIsTrading(false);
+        setCurrentPage('result');
+      } catch (error) {
+        console.error('Error updating balance:', error);
+        alert('Error processing trade. Please try again.');
+        setIsTrading(false);
+      }
     }, tradeConfig.time * 1000);
   };
 
@@ -349,6 +409,18 @@ function App() {
     );
   }
 
+  // Show loading while users data is being fetched from Firestore
+  if (isLoadingUsers) {
+    return (
+      <div className="app-wrapper">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+          <div style={{ fontSize: '24px', marginBottom: '20px' }}>🔄</div>
+          <div>Loading user data...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-wrapper">
       <header className="header"><div className="header-icon" onClick={() => setCurrentPage('menu')}>⚙️</div><div className="header-icon" onClick={() => isLoggedIn ? setCurrentPage('profile') : setShowAuth(true)}>👤</div></header>
@@ -401,11 +473,17 @@ function App() {
               <p style={{marginBottom: '10px'}}>User: {allUsers[adminSearchId].name}</p>
               <p style={{marginBottom: '10px', fontSize: '12px', color: '#999'}}>Current Balance: ${allUsers[adminSearchId].balance.toFixed(2)}</p>
               <input className="login-input" placeholder="New Balance" value={adminNewBalance} onChange={e => setAdminNewBalance(e.target.value)} />
-              <button className="buy-btn" style={{marginTop: '10px', marginBottom: '10px'}} onClick={() => {
+              <button className="buy-btn" style={{marginTop: '10px', marginBottom: '10px'}} onClick={async () => {
                 if (adminNewBalance) {
-                  setAllUsers({...allUsers, [adminSearchId]: {...allUsers[adminSearchId], balance: Number(adminNewBalance)}});
-                  alert("Balance updated!");
-                  setAdminNewBalance('');
+                  try {
+                    const userRef = doc(db, 'users', adminSearchId);
+                    await updateDoc(userRef, { balance: Number(adminNewBalance) });
+                    alert("Balance updated successfully!");
+                    setAdminNewBalance('');
+                  } catch (error) {
+                    console.error('Error updating balance:', error);
+                    alert("Error updating balance. Please try again.");
+                  }
                 } else {
                   alert("Please enter a balance amount");
                 }

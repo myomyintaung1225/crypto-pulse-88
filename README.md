@@ -1,53 +1,102 @@
-# Getting Started with Create React App
+# Crypto Pulse - Trading App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern cryptocurrency trading application with real-time market data and cross-device admin control.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- 📊 Real-time cryptocurrency prices from CoinGecko API
+- 🕯️ Professional candlestick charts with technical analysis
+- 💰 Binary options trading with configurable timeframes
+- 👥 User account management with email/password authentication
+- 🔧 Admin panel for managing user balances across devices
+- ☁️ Firebase Firestore for cloud data synchronization
+- 📱 Responsive design for mobile and desktop
 
-### `npm start`
+## Setup Instructions
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 1. Firebase Configuration
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project or select existing one
+3. Enable Firestore Database:
+   - Go to "Firestore Database" in the left sidebar
+   - Click "Create database"
+   - Choose "Start in test mode" for development
+4. Get your Firebase config:
+   - Go to Project Settings (gear icon)
+   - Scroll to "Your apps" section
+   - Click "Add app" and select Web (</>) icon
+   - Copy the config values
 
-### `npm test`
+### 2. Environment Variables
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Copy `.env.example` to `.env`
+2. Replace the placeholder values with your Firebase config:
 
-### `npm run build`
+```env
+REACT_APP_FIREBASE_API_KEY=your_actual_api_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+REACT_APP_FIREBASE_APP_ID=your_app_id
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 3. Install Dependencies
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm install
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 4. Run the Application
 
-### `npm run eject`
+```bash
+npm start
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 5. Deploy to Vercel
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Push your code to GitHub
+2. Connect your GitHub repo to Vercel
+3. Add environment variables in Vercel dashboard:
+   - Go to your project settings
+   - Navigate to "Environment Variables"
+   - Add all the `REACT_APP_*` variables from your `.env` file
+4. Deploy!
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Admin Panel Access
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- Click the PRIMEBLOCK logo 5 times quickly to access admin panel
+- Default admin credentials: `admin@cp88.com` / `123`
+- Admin can manage user balances from any device
 
-## Learn More
+## Firebase Security Rules
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+For production, update your Firestore security rules:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write for authenticated users
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
 
-### Code Splitting
+## Technologies Used
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- React 19
+- Firebase Firestore
+- CoinGecko API
+- Lightweight Charts (for candlestick rendering)
+- CSS3 with modern responsive design
+
+## License
+
+MIT License
 
 ### Analyzing the Bundle Size
 
