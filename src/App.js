@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import './App.css';
 import { db } from './firebase';
 import {
