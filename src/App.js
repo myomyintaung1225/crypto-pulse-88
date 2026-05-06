@@ -410,7 +410,9 @@ function App() {
           {/* Trade History Section */}
           <div className="history-section">
             <h3>Trade History</h3>
-            <div className="history-table-container">
+
+            {/* Desktop Table View */}
+            <div className="history-table-container desktop-only">
               <table className="history-table">
                 <thead>
                   <tr>
@@ -441,6 +443,40 @@ function App() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="history-cards mobile-only">
+              {tradeHistory.length > 0 ? tradeHistory.map((trade) => (
+                <div key={trade.orderId} className="history-card">
+                  <div className="card-header">
+                    <span className="order-id">{trade.orderId}</span>
+                    <span className={`profit-badge ${trade.win ? 'profit-win' : 'profit-loss'}`}>
+                      {trade.win ? '+' : '-'}${Math.abs(trade.profit).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="card-details">
+                    <div className="card-row">
+                      <span className="card-label">Asset:</span>
+                      <span className="card-value">{trade.asset}</span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Type:</span>
+                      <span className="card-value">{trade.type}</span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Amount:</span>
+                      <span className="card-value">${trade.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="card-row">
+                      <span className="card-label">Date:</span>
+                      <span className="card-value">{new Date(trade.timestamp.seconds * 1000).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <div className="no-trades">No trades yet</div>
+              )}
             </div>
           </div>
         </div>
@@ -528,6 +564,12 @@ function App() {
           </div>
           <div className="action-btns"><button className="long-btn" onClick={() => startTrade('Long')} disabled={isTrading}>LONG</button><button className="short-btn" onClick={() => startTrade('Short')} disabled={isTrading}>SHORT</button></div>
         </div>
+
+        <TradeResultModal
+          isOpen={showResultModal}
+          onClose={() => setShowResultModal(false)}
+          tradeResult={tradeResult}
+        />
       </div>
     );
   }
@@ -546,11 +588,14 @@ function App() {
 
   return (
     <div className="app-wrapper">
-      <header className="header"><div className="header-icon" onClick={() => setCurrentPage('menu')}>⚙️</div><div className="header-icon" onClick={() => isLoggedIn ? setCurrentPage('profile') : setShowAuth(true)}>👤</div></header>
-      <main className="main-content">
-        <div className="brand-header">
-          <h1>PrimeBlock</h1>
+      <header className="header">
+        <div className="brand-name">PrimeBlock</div>
+        <div className="header-icons">
+          <div className="header-icon" onClick={() => setCurrentPage('menu')}>⚙️</div>
+          <div className="header-icon" onClick={() => isLoggedIn ? setCurrentPage('profile') : setShowAuth(true)}>👤</div>
         </div>
+      </header>
+      <main className="main-content">
         <div className="market-tabs-container">
           <div className={`tab-item ${marketTab === 'crypto' ? 'active-crypto' : ''}`} onClick={() => setMarketTab('crypto')}>Crypto</div>
           <div className={`tab-item ${marketTab === 'stocks' ? 'active-global' : ''}`} onClick={() => setMarketTab('stocks')}>Global</div>

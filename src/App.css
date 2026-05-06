@@ -58,9 +58,10 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
   background: rgba(240, 185, 11, 0.1);
 }
 
-/* --- DASHBOARD LAYOUT --- */
-.app-wrapper { width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+/* --- HEADER LAYOUT --- */
 .header { height: 60px; background: var(--card-bg); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 1px solid #2b3139; }
+.brand-name { color: var(--primary); font-size: 28px; font-weight: bold; letter-spacing: 1px; }
+.header-icons { display: flex; gap: 15px; }
 .header-icon { font-size: 20px; cursor: pointer; }
 .main-content { flex: 1; width: 100%; padding-bottom: 20px; }
 
@@ -139,7 +140,7 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .time-left { font-size: 32px; font-weight: bold; color: var(--primary); }
 
 /* --- MODALS --- */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .modal-content { background: var(--card-bg); padding: 25px; border-radius: 16px; width: 90%; max-width: 380px; position: relative; border: 1px solid #2b3139; }
 .close-btn { position: absolute; right: 15px; top: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 .login-input { width: 100%; padding: 12px; margin: 8px 0; background: #0b0e11; border: 1px solid #2b3139; color: white; border-radius: 8px; outline: none; }
@@ -155,8 +156,7 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .down { color: var(--down); }
 
 /* --- BRAND HEADER --- */
-.brand-header { text-align: center; padding: 15px; background: var(--card-bg); border-bottom: 1px solid #2b3139; }
-.brand-header h1 { color: var(--primary); font-size: 24px; font-weight: bold; margin: 0; }
+.brand-name { color: var(--primary); font-size: 28px; font-weight: bold; letter-spacing: 1px; }
 
 /* --- MINIMUM AMOUNT DISPLAY --- */
 .min-amount { font-size: 10px; color: var(--text-muted); margin-left: 10px; }
@@ -171,8 +171,6 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .result-value { font-weight: bold; font-size: 14px; }
 .profit-row { border-top: 2px solid #2b3139; margin-top: 10px; padding-top: 15px; }
 .profit-amount { font-size: 18px; font-weight: bold; }
-.profit-win { color: var(--up); }
-.profit-loss { color: var(--down); }
 
 /* --- HISTORY SECTIONS --- */
 .history-section { width: 100%; max-width: 400px; margin-top: 30px; }
@@ -181,5 +179,29 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .history-table { width: 100%; border-collapse: collapse; }
 .history-table th { background: #1e2329; color: var(--text-muted); padding: 12px; font-size: 12px; text-align: left; border-bottom: 1px solid #2b3139; }
 .history-table td { padding: 12px; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
-.profit-positive { color: var(--up); font-weight: bold; }
-.profit-negative { color: var(--down); font-weight: bold; }
+.profit-positive { color: var(--up); font-weight: bold; text-shadow: 0 0 8px rgba(14, 203, 129, 0.5); }
+.profit-negative { color: var(--down); font-weight: bold; text-shadow: 0 0 8px rgba(246, 70, 93, 0.5); }
+
+/* --- MOBILE RESPONSIVE HISTORY --- */
+.history-cards { display: flex; flex-direction: column; gap: 12px; }
+.history-card { background: #2b3139; border-radius: 12px; padding: 16px; border: 1px solid rgba(240,185,11,0.2); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.order-id { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+.profit-badge { font-size: 16px; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
+.profit-win { color: var(--up); background: rgba(14, 203, 129, 0.1); border: 1px solid rgba(14, 203, 129, 0.3); text-shadow: 0 0 8px rgba(14, 203, 129, 0.5); }
+.profit-loss { color: var(--down); background: rgba(246, 70, 93, 0.1); border: 1px solid rgba(246, 70, 93, 0.3); text-shadow: 0 0 8px rgba(246, 70, 93, 0.5); }
+.card-details { display: flex; flex-direction: column; gap: 8px; }
+.card-row { display: flex; justify-content: space-between; align-items: center; }
+.card-label { color: var(--text-muted); font-size: 12px; }
+.card-value { color: var(--text-main); font-size: 13px; font-weight: 500; }
+.no-trades { text-align: center; color: #999; padding: 20px; font-style: italic; }
+
+/* --- RESPONSIVE CLASSES --- */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+  .history-section { max-width: 100%; margin: 20px 0; }
+}
