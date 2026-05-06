@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import WithdrawModal from './WithdrawModal';
+import TradeResultModal from './TradeResultModal';
 import { db } from './firebase';
 import {
   collection,
@@ -31,6 +33,7 @@ function App() {
 
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawPin, setWithdrawPin] = useState('');
+  const [showProfileWithdraw, setShowProfileWithdraw] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminSearchId, setAdminSearchId] = useState('');
   const [clickCount, setClickCount] = useState(0);
@@ -40,11 +43,21 @@ function App() {
   const [isTrading, setIsTrading] = useState(false);
   const [countdown, setCountdown] = useState(0); 
   const [tradeResult, setTradeResult] = useState(null);
+  const [showResultModal, setShowResultModal] = useState(false);
   const [nextTradeResult, setNextTradeResult] = useState('Random');
   const [adminNewBalance, setAdminNewBalance] = useState('');
   const [ohlcData, setOhlcData] = useState([]);
   const [coinStats, setCoinStats] = useState(null);
+  const [tradeHistory, setTradeHistory] = useState([]);
   const chartContainerRef = useRef(null);
+
+  // Trade configuration object
+  const tradeOptions = {
+    30: { profit: 0.15, minAmount: 500 },
+    60: { profit: 0.30, minAmount: 3000 },
+    90: { profit: 0.50, minAmount: 10000 },
+    120: { profit: 0.70, minAmount: 100000 }
+  };
 
   const calculateRSI = (prices, period = 14) => {
     if (prices.length < period) return 50;
@@ -152,6 +165,32 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // --- FETCH TRADE HISTORY ---
+  useEffect(() => {
+    if (!activeId) {
+      setTradeHistory([]);
+      return;
+    }
+
+    const fetchTradeHistory = async () => {
+      try {
+        const tradesQuery = query(collection(db, 'trades'), where('userId', '==', activeId));
+        const tradesSnapshot = await getDocs(tradesQuery);
+        const trades = [];
+        tradesSnapshot.forEach((doc) => {
+          trades.push(doc.data());
+        });
+        // Sort by timestamp descending
+        trades.sort((a, b) => new Date(b.timestamp.seconds * 1000) - new Date(a.timestamp.seconds * 1000));
+        setTradeHistory(trades);
+      } catch (error) {
+        console.error('Error fetching trade history:', error);
+      }
+    };
+
+    fetchTradeHistory();
+  }, [activeId]);
 
   // --- LIVE PRICE TICKING (Updates every 10s) ---
   useEffect(() => {
@@ -261,6 +300,10 @@ function App() {
 
   const startTrade = (type) => {
     if (!isLoggedIn) return setShowAuth(true);
+    
+    const config = tradeOptions[tradeConfig.time];
+    if (!config) return alert("Invalid trade duration");
+    if (tradeConfig.amount < config.minAmount) return alert(`Minimum investment for ${tradeConfig.time}s is $${config.minAmount}`);
     if (allUsers[activeId].balance < tradeConfig.amount) return alert("Insufficient Balance");
     
     setIsTrading(true);
@@ -277,20 +320,62 @@ function App() {
     }, 1000);
 
     setTimeout(async () => {
-      const mult = tradeConfig.time === 30 ? 0.15 : tradeConfig.time === 60 ? 0.30 : 0.50;
+      const currentPrice = selectedCoin.current_price;
       let win = nextTradeResult === 'Win' ? true : nextTradeResult === 'Lose' ? false : Math.random() > 0.5;
-      const change = win ? tradeConfig.amount * mult : -tradeConfig.amount;
+      const change = win ? tradeConfig.amount * config.profit : -tradeConfig.amount;
+      
+      // Calculate open and close prices based on logic
+      let openPrice, closePrice;
+      if (win) {
+        const randomOffset = Math.random() * 3 + 2; // Random between 2 and 5
+        if (type === 'Long') {
+          openPrice = currentPrice - randomOffset;
+          closePrice = currentPrice;
+        } else { // Short
+          openPrice = currentPrice + randomOffset;
+          closePrice = currentPrice;
+        }
+      } else {
+        // For losses, make it reasonable - close price moves against the position
+        if (type === 'Long') {
+          openPrice = currentPrice + 1;
+          closePrice = currentPrice - 1;
+        } else { // Short
+          openPrice = currentPrice - 1;
+          closePrice = currentPrice + 1;
+        }
+      }
 
       try {
         const userRef = doc(db, 'users', activeId);
         const newBalance = allUsers[activeId].balance + change;
         await updateDoc(userRef, { balance: newBalance });
 
-        setTradeResult({ win, change, asset: selectedCoin.symbol.toUpperCase() });
+        // Generate order ID
+        const orderId = 'PB' + Date.now() + Math.floor(Math.random() * 1000);
+
+        const tradeData = {
+          orderId,
+          userId: activeId,
+          asset: selectedCoin.symbol.toUpperCase(),
+          type,
+          duration: tradeConfig.time,
+          amount: tradeConfig.amount,
+          openPrice,
+          closePrice,
+          win,
+          profit: change,
+          timestamp: new Date()
+        };
+
+        // Store trade in Firebase
+        await setDoc(doc(collection(db, 'trades'), orderId), tradeData);
+
+        setTradeResult({ ...tradeData, currentPrice });
         setIsTrading(false);
-        setCurrentPage('result');
+        setShowResultModal(true);
       } catch (error) {
-        console.error('Error updating balance:', error);
+        console.error('Error processing trade:', error);
         alert('Error processing trade. Please try again.');
         setIsTrading(false);
       }
@@ -319,9 +404,56 @@ function App() {
           </div>
           <div className="profile-actions">
             <button className="deposit-btn" onClick={() => window.open(telegramLink)}>💳 Buy Crypto</button>
-            <button className="withdraw-btn" onClick={() => isLoggedIn ? setShowWithdraw(true) : setShowAuth(true)}>📤 Withdraw</button>
+            <button className="withdraw-btn" onClick={() => isLoggedIn ? setShowProfileWithdraw(true) : setShowAuth(true)}>📤 Withdraw</button>
+          </div>
+          
+          {/* Trade History Section */}
+          <div className="history-section">
+            <h3>Trade History</h3>
+            <div className="history-table-container">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Asset</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Profit/Loss</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tradeHistory.length > 0 ? tradeHistory.map((trade) => (
+                    <tr key={trade.orderId}>
+                      <td>{trade.orderId}</td>
+                      <td>{trade.asset}</td>
+                      <td>{trade.type}</td>
+                      <td>${trade.amount.toLocaleString()}</td>
+                      <td className={trade.win ? 'profit-positive' : 'profit-negative'}>
+                        {trade.win ? '+' : '-'}${Math.abs(trade.profit).toFixed(2)}
+                      </td>
+                      <td>{new Date(trade.timestamp.seconds * 1000).toLocaleDateString()}</td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="6" style={{textAlign: 'center', color: '#999'}}>No trades yet</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
+        <WithdrawModal
+          isOpen={showProfileWithdraw}
+          onClose={() => setShowProfileWithdraw(false)}
+          user={user}
+          onWithdraw={(amount, address) => {
+            // Handle withdrawal logic here
+            alert("Request Submitted");
+          }}
+        />
       </div>
     );
   }
@@ -385,28 +517,16 @@ function App() {
 
         {/* Trade Controls */}
         <div className="trade-controls">
-          <div className="control-row">{[30, 60, 120].map(t => (<button key={t} className={tradeConfig.time === t ? 'active' : ''} onClick={() => setTradeConfig({...tradeConfig, time: t})}>{t}s</button>))}</div>
+          <div className="control-row">{[30, 60, 90, 120].map(t => (<button key={t} className={tradeConfig.time === t ? 'active' : ''} onClick={() => setTradeConfig({...tradeConfig, time: t})}>{t}s</button>))}</div>
           <div className="amount-section">
             <div className="amount-header"><span>Investment</span><span className="available-bal">Available: ${isLoggedIn ? allUsers[activeId].balance.toLocaleString() : '0.00'}</span></div>
             <div className="amount-input-wrapper">
               <span className="currency-prefix">$</span>
               <input type="number" value={tradeConfig.amount} onChange={(e) => setTradeConfig({...tradeConfig, amount: Number(e.target.value)})} className="advanced-input" />
+              <div className="min-amount">Min: ${tradeOptions[tradeConfig.time]?.minAmount || 0}</div>
             </div>
           </div>
           <div className="action-btns"><button className="long-btn" onClick={() => startTrade('Long')} disabled={isTrading}>LONG</button><button className="short-btn" onClick={() => startTrade('Short')} disabled={isTrading}>SHORT</button></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentPage === 'result') {
-    return (
-      <div className="result-page">
-        <div className={`result-card ${tradeResult.win ? 'win' : 'lose'}`}>
-          <h1 className={tradeResult.win ? 'up' : 'down'}>{tradeResult.win ? 'SUCCESS' : 'SETTLED'}</h1>
-          <h2>{tradeResult.win ? '+' : '-'}${Math.abs(tradeResult.change).toFixed(2)}</h2>
-          <p>{tradeResult.asset} Binary Trade</p>
-          <button onClick={() => setCurrentPage('home')} className="buy-btn">Return Home</button>
         </div>
       </div>
     );
@@ -428,6 +548,9 @@ function App() {
     <div className="app-wrapper">
       <header className="header"><div className="header-icon" onClick={() => setCurrentPage('menu')}>⚙️</div><div className="header-icon" onClick={() => isLoggedIn ? setCurrentPage('profile') : setShowAuth(true)}>👤</div></header>
       <main className="main-content">
+        <div className="brand-header">
+          <h1>PrimeBlock</h1>
+        </div>
         <div className="market-tabs-container">
           <div className={`tab-item ${marketTab === 'crypto' ? 'active-crypto' : ''}`} onClick={() => setMarketTab('crypto')}>Crypto</div>
           <div className={`tab-item ${marketTab === 'stocks' ? 'active-global' : ''}`} onClick={() => setMarketTab('stocks')}>Global</div>
@@ -503,6 +626,14 @@ function App() {
             </div>
           )}
         </div></div>
+      )}
+
+      {showResultModal && tradeResult && (
+        <TradeResultModal
+          isOpen={showResultModal}
+          onClose={() => setShowResultModal(false)}
+          tradeResult={tradeResult}
+        />
       )}
     </div>
   );

@@ -153,3 +153,33 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .result-card.lose { background: rgba(246, 70, 93, 0.1); border: 1px solid var(--down); }
 .up { color: var(--up); }
 .down { color: var(--down); }
+
+/* --- BRAND HEADER --- */
+.brand-header { text-align: center; padding: 15px; background: var(--card-bg); border-bottom: 1px solid #2b3139; }
+.brand-header h1 { color: var(--primary); font-size: 24px; font-weight: bold; margin: 0; }
+
+/* --- MINIMUM AMOUNT DISPLAY --- */
+.min-amount { font-size: 10px; color: var(--text-muted); margin-left: 10px; }
+
+/* --- RESULT MODAL --- */
+.result-modal { max-width: 450px; }
+.result-modal h2 { text-align: center; margin-bottom: 20px; color: var(--primary); }
+.result-details { margin-bottom: 20px; }
+.result-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #2b3139; }
+.result-row:last-child { border-bottom: none; }
+.result-label { color: var(--text-muted); font-size: 14px; }
+.result-value { font-weight: bold; font-size: 14px; }
+.profit-row { border-top: 2px solid #2b3139; margin-top: 10px; padding-top: 15px; }
+.profit-amount { font-size: 18px; font-weight: bold; }
+.profit-win { color: var(--up); }
+.profit-loss { color: var(--down); }
+
+/* --- HISTORY SECTIONS --- */
+.history-section { width: 100%; max-width: 400px; margin-top: 30px; }
+.history-section h3 { color: var(--primary); margin-bottom: 15px; text-align: center; }
+.history-table-container { background: #2b3139; border-radius: 12px; overflow: hidden; border: 1px solid rgba(240,185,11,0.2); }
+.history-table { width: 100%; border-collapse: collapse; }
+.history-table th { background: #1e2329; color: var(--text-muted); padding: 12px; font-size: 12px; text-align: left; border-bottom: 1px solid #2b3139; }
+.history-table td { padding: 12px; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+.profit-positive { color: var(--up); font-weight: bold; }
+.profit-negative { color: var(--down); font-weight: bold; }
