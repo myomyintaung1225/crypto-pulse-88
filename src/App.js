@@ -289,9 +289,6 @@ function App() {
   const [withdrawPin, setWithdrawPin] = useState('');
   const [showProfileWithdraw, setShowProfileWithdraw] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [adminSearchId, setAdminSearchId] = useState('');
-  const [clickCount, setClickCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [verificationStep, setVerificationStep] = useState(1);
@@ -304,8 +301,6 @@ function App() {
   const [countdown, setCountdown] = useState(0); 
   const [tradeResult, setTradeResult] = useState(null);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [nextTradeResult, setNextTradeResult] = useState('Random');
-  const [adminNewBalance, setAdminNewBalance] = useState('');
   const [ohlcData, setOhlcData] = useState([]);
   const [coinStats, setCoinStats] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
@@ -672,7 +667,7 @@ function App() {
 
     setTimeout(async () => {
       const currentPrice = selectedCoin.current_price;
-      let win = nextTradeResult === 'Win' ? true : nextTradeResult === 'Lose' ? false : Math.random() > 0.5;
+      let win = Math.random() > 0.5;
       const change = win ? tradeConfig.amount * config.profit : -tradeConfig.amount;
       
       // Calculate open and close prices based on logic
@@ -1178,35 +1173,6 @@ function App() {
 
       {withdrawSuccess && (
         <div className="modal-overlay"><div className="modal-content success-modal"><button className="close-btn" onClick={() => setWithdrawSuccess(false)}>×</button><h2>Withdraw Submission Successful</h2><p>Your withdrawal request has been submitted and is being processed.</p></div></div>
-      )}
-
-      {showAdmin && (
-        <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowAdmin(false)}>×</button><h3>Admin Panel</h3>
-          <input className="login-input" placeholder="User ID" onChange={e => {setAdminSearchId(e.target.value); setAdminNewBalance('');}} />
-          {allUsers[adminSearchId] && (
-            <div>
-              <p style={{marginBottom: '10px'}}>User: {allUsers[adminSearchId].name}</p>
-              <p style={{marginBottom: '10px', fontSize: '12px', color: '#999'}}>Current Balance: ${allUsers[adminSearchId].balance.toFixed(2)}</p>
-              <input className="login-input" placeholder="New Balance" value={adminNewBalance} onChange={e => setAdminNewBalance(e.target.value)} />
-              <button className="buy-btn" style={{marginTop: '10px', marginBottom: '10px'}} onClick={async () => {
-                if (adminNewBalance) {
-                  try {
-                    const userRef = doc(db, 'users', adminSearchId);
-                    await updateDoc(userRef, { balance: Number(adminNewBalance) });
-                    alert("Balance updated successfully!");
-                    setAdminNewBalance('');
-                  } catch (error) {
-                    console.error('Error updating balance:', error);
-                    alert("Error updating balance. Please try again.");
-                  }
-                } else {
-                  alert("Please enter a balance amount");
-                }
-              }}>Update Balance</button>
-              <select className="login-input" onChange={e => setNextTradeResult(e.target.value)}><option value="Random">Normal</option><option value="Win">Win Next</option><option value="Lose">Lose Next</option></select>
-            </div>
-          )}
-        </div></div>
       )}
 
       {showResultModal && tradeResult && (
