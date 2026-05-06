@@ -1,13 +1,28 @@
 :root {
-  --bg-dark: #0b0e11;
-  --card-bg: #1e2329;
+  --bg-dark: #0d1117; /* Deep charcoal for premium dark mode */
+  --card-bg: #161b22;
   --primary: #f0b90b;
-  --text-main: #eaecef;
-  --text-muted: #848e9c;
-  --up: #0ecb81;
-  --down: #f6465d;
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --up: #56d364;
+  --down: #f85149;
   --crypto-color: #f3ba2f; /* Binance Gold */
   --global-color: #3c82f6; /* Market Blue */
+}
+
+[data-theme="light"] {
+  --bg-dark: #ffffff;
+  --card-bg: #f6f8fa;
+  --text-main: #24292f;
+  --text-muted: #57606a;
+}
+
+[data-appearance="gradient"] .menu-item {
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 100%);
+}
+
+[data-appearance="gradient"] .deposit-card {
+  background: linear-gradient(135deg, #1e2329 0%, #2b3139 100%);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -70,6 +85,7 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .crypto-table th { color: var(--text-muted); padding: 15px; font-size: 12px; text-align: left; border-bottom: 1px solid #2b3139; }
 .crypto-table td { padding: 15px; border-bottom: 1px solid #1a1a1a; }
 .asset-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.asset-cell img { border-radius: 50%; width: 24px; height: 24px; }
 .trade-button { background: var(--primary); border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; color: #000; }
 
 /* --- PRICE UPDATE FLASH --- */
@@ -91,15 +107,33 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .colorful-bg { background: #0b0e11; min-height: 100vh; }
 .brand-logo { color: var(--primary); font-weight: bold; letter-spacing: 1px; cursor: pointer; }
 .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
-.menu-item { height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; }
+.menu-item { min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; }
 .menu-item:active { transform: scale(0.95); background: rgba(255,255,255,0.08); }
 .gold { border-bottom: 4px solid #f0b90b; }
 .blue { border-bottom: 4px solid #3c82f6; }
 .green { border-bottom: 4px solid #0ecb81; }
-.red { border-bottom: 4px solid #f6465d; }
+.teal { border-bottom: 4px solid #22c55e; }
 .purple { border-bottom: 4px solid #8b5cf6; }
 .logout { color: #f6465d; border-bottom: 4px solid #f6465d; }
 .menu-icon { font-size: 28px; margin-bottom: 8px; }
+.settings-block { padding: 0 20px 20px; }
+.settings-block h3 { color: var(--primary); margin-bottom: 10px; }
+.setting-item { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+.setting-icon { font-size: 24px; width: 30px; text-align: center; }
+.language-label { flex: 1; color: var(--text-muted); font-size: 13px; }
+.language-select { flex: 2; padding: 8px; border-radius: 8px; border: 1px solid #2b3139; background: #111418; color: white; }
+
+.deposit-page { min-height: 100vh; background: var(--bg-dark); }
+.deposit-banner { background: rgba(14, 203, 129, 0.12); color: var(--up); padding: 16px 20px; margin: 15px; border-radius: 14px; border: 1px solid rgba(14, 203, 129, 0.2); text-align: center; font-weight: 600; }
+.deposit-page-content { padding: 20px; }
+.deposit-instructions h2 { color: var(--primary); margin-bottom: 10px; }
+.deposit-instructions p { color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
+.deposit-form { display: grid; gap: 14px; }
+.deposit-address-display { padding: 12px; background: #0b0e11; border: 1px solid #2b3139; color: white; border-radius: 8px; word-break: break-all; font-family: monospace; }
+.customer-service-note { margin-top: 20px; padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); font-size: 13px; }
+
+.active-metals { background: #b08c4f; color: #000 !important; box-shadow: 0 4px 15px rgba(176, 140, 79, 0.3); }
+.active-forex { background: #22c55e; color: #000 !important; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); }
 
 /* --- TRADE SCREEN --- */
 .trade-page { height: 100vh; display: flex; flex-direction: column; background: var(--bg-dark); position: relative; overflow-y: auto; padding-bottom: 180px; }
@@ -117,8 +151,13 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 .stat-value { font-size: 14px; font-weight: bold; color: var(--text-main); }
 
 /* --- CANDLESTICK CHART --- */
-.chart-container { flex: 1; width: 100%; padding: 20px 15px; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(180deg, rgba(30,35,41,0.5) 0%, rgba(11,14,17,0.5) 100%); }
+.chart-and-sidebar { display: flex; width: 100%; }
+.chart-container { flex: 1; padding: 20px 15px; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(180deg, rgba(30,35,41,0.5) 0%, rgba(11,14,17,0.5) 100%); }
 .chart-container svg { max-width: 100%; height: auto; margin: 0 auto; }
+.chart-sidebar { width: 150px; background: #1e2329; padding: 20px; border-left: 1px solid #2b3139; display: flex; flex-direction: column; gap: 20px; }
+.sidebar-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.sidebar-label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+.sidebar-value { font-size: 16px; font-weight: bold; color: var(--primary); }
 
 .trade-controls { background: var(--card-bg); padding: 20px; border-radius: 24px 24px 0 0; position: fixed; bottom: 0; width: 100%; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); z-index: 10; max-height: 180px; overflow-y: auto; }
 .control-row { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -141,24 +180,45 @@ body { background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; 
 
 /* --- MODALS --- */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.modal-content { background: var(--card-bg); padding: 25px; border-radius: 16px; width: 90%; max-width: 380px; position: relative; border: 1px solid #2b3139; }
+.success-modal { text-align: center; }
+.success-modal h2 { color: var(--up); margin-bottom: 10px; }
+.success-modal p { color: var(--text-main); }
 .close-btn { position: absolute; right: 15px; top: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
 .login-input { width: 100%; padding: 12px; margin: 8px 0; background: #0b0e11; border: 1px solid #2b3139; color: white; border-radius: 8px; outline: none; }
 .buy-btn { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 10px; }
-.toggle-auth { color: var(--primary); font-size: 13px; text-align: center; margin-top: 15px; cursor: pointer; text-decoration: underline; }
+.error-message { color: var(--down); font-size: 12px; margin-top: 5px; }
 
-/* --- RESULT PAGE --- */
-.result-page { height: 100vh; display: flex; justify-content: center; align-items: center; background: #000; padding: 20px; }
-.result-card { text-align: center; padding: 40px; border-radius: 24px; width: 100%; max-width: 350px; }
-.result-card.win { background: rgba(14, 203, 129, 0.1); border: 1px solid var(--up); }
-.result-card.lose { background: rgba(246, 70, 93, 0.1); border: 1px solid var(--down); }
-.up { color: var(--up); }
-.down { color: var(--down); }
+/* --- HEADER UPDATES --- */
+.header-left { display: flex; align-items: center; }
+.hamburger { cursor: pointer; font-size: 20px; margin-right: 10px; color: var(--primary); }
 
-/* --- BRAND HEADER --- */
-.brand-name { color: var(--primary); font-size: 28px; font-weight: bold; letter-spacing: 1px; }
+/* --- SIDE DRAWER --- */
+.side-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+.side-drawer { position: fixed; left: 0; top: 0; height: 100%; width: 280px; background: var(--card-bg); z-index: 1000; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.3); transform: translateX(-100%); transition: transform 0.3s ease; overflow-y: auto; }
+.side-drawer.open { transform: translateX(0); }
+.drawer-close { position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-main); font-size: 24px; cursor: pointer; }
+.drawer-profile { display: flex; align-items: center; padding: 20px 0; border-bottom: 1px solid #2b3139; margin-bottom: 20px; }
+.drawer-avatar { font-size: 40px; margin-right: 15px; }
+.drawer-info h4 { margin: 0; color: var(--text-main); }
+.drawer-info p { margin: 5px 0 0; color: var(--text-muted); font-size: 12px; }
+.drawer-section { margin-bottom: 25px; }
+.drawer-section h5 { color: var(--primary); margin-bottom: 10px; font-size: 14px; text-transform: uppercase; }
+.drawer-item { padding: 12px 0; cursor: pointer; color: var(--text-main); border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
+.drawer-item:hover { background: rgba(255,255,255,0.05); }
+.drawer-item.logout { color: #f6465d; }
 
-/* --- MINIMUM AMOUNT DISPLAY --- */
+/* --- FLOATING SUPPORT --- */
+.floating-support { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; box-shadow: 0 4px 15px rgba(240,185,11,0.3); font-size: 20px; }
+
+/* --- SETTINGS PAGE --- */
+.settings-page { min-height: 100vh; background: var(--bg-dark); }
+.settings-content { padding: 20px; }
+.setting-btn { background: var(--primary); border: none; padding: 8px 15px; border-radius: 8px; color: #000; font-weight: bold; cursor: pointer; }
+
+/* --- SECURITY MODAL --- */
+.security-modal { max-width: 400px; text-align: center; }
+.verification-step { display: flex; flex-direction: column; gap: 15px; }
+.telegram-logo { font-size: 50px; margin: 10px 0; }
 .min-amount { font-size: 10px; color: var(--text-muted); margin-left: 10px; }
 
 /* --- RESULT MODAL --- */
