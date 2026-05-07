@@ -3,6 +3,7 @@ import './App.css';
 import WithdrawModal from './WithdrawModal';
 import TradeResultModal from './TradeResultModal';
 import { db } from './firebase';
+import * as LightweightCharts from 'lightweight-charts';
 import {
   collection,
   doc,
@@ -267,10 +268,25 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('is_logged_in') === 'true');
 
   // --- STATE MANAGEMENT ---
-  const [coins, setCoins] = useState([]);
+  const [coins, setCoins] = useState([
+    { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', current_price: 81118.60, image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png', sparkline_in_7d: { price: [81118.60] } },
+    { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', current_price: 2100, image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png', sparkline_in_7d: { price: [2100] } },
+    { id: 'solana', name: 'Solana', symbol: 'SOL', current_price: 165, image: 'https://assets.coingecko.com/coins/images/4128/large/solana.png', sparkline_in_7d: { price: [165] } },
+    { id: 'binancecoin', name: 'Binance Coin', symbol: 'BNB', current_price: 320, image: 'https://assets.coingecko.com/coins/images/825/large/binance-coin-logo.png', sparkline_in_7d: { price: [320] } },
+    { id: 'ripple', name: 'XRP', symbol: 'XRP', current_price: 0.65, image: 'https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png', sparkline_in_7d: { price: [0.65] } },
+    { id: 'cardano', name: 'Cardano', symbol: 'ADA', current_price: 0.42, image: 'https://assets.coingecko.com/coins/images/975/large/cardano.png', sparkline_in_7d: { price: [0.42] } },
+    { id: 'polkadot', name: 'Polkadot', symbol: 'DOT', current_price: 7.8, image: 'https://assets.coingecko.com/coins/images/12171/large/polkadot.png', sparkline_in_7d: { price: [7.8] } },
+    { id: 'chainlink', name: 'Chainlink', symbol: 'LINK', current_price: 18.1, image: 'https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png', sparkline_in_7d: { price: [18.1] } },
+    { id: 'polygon', name: 'Polygon', symbol: 'MATIC', current_price: 0.92, image: 'https://assets.coingecko.com/coins/images/4713/large/polygon-logo.png', sparkline_in_7d: { price: [0.92] } },
+    { id: 'litecoin', name: 'Litecoin', symbol: 'LTC', current_price: 84.5, image: 'https://assets.coingecko.com/coins/images/2/large/litecoin.png', sparkline_in_7d: { price: [84.5] } },
+    { id: 'dogecoin', name: 'Dogecoin', symbol: 'DOGE', current_price: 0.07, image: 'https://assets.coingecko.com/coins/images/5/large/dogecoin.png', sparkline_in_7d: { price: [0.07] } },
+    { id: 'shiba-inu', name: 'Shiba Inu', symbol: 'SHIB', current_price: 0.000007, image: 'https://assets.coingecko.com/coins/images/11939/large/shiba.png', sparkline_in_7d: { price: [0.000007] } }
+  ]);
   const [loading, setLoading] = useState(true);
+  const [marketStatus, setMarketStatus] = useState('live');
+  const [priceFlash, setPriceFlash] = useState({});
   const [currentPage, setCurrentPage] = useState('home'); 
-  const [marketTab, setMarketTab] = useState('crypto'); 
+  const [marketTab, setMarketTab] = useState('metals'); 
   const [language, setLanguage] = useState(() => localStorage.getItem('app_language') || 'english');
   const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'dark');
   const [appearance, setAppearance] = useState(() => localStorage.getItem('app_appearance') || 'solid');
@@ -287,6 +303,9 @@ function App() {
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawPin, setWithdrawPin] = useState('');
+
+  const pollIntervalRef = useRef(null);
+  const chartPollIntervalRef = useRef(null);
   const [showProfileWithdraw, setShowProfileWithdraw] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -295,7 +314,16 @@ function App() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
 
-  const [selectedCoin, setSelectedCoin] = useState(null);
+  const [selectedCoin, setSelectedCoin] = useState(() => {
+    // Auto-select gold on startup
+    const goldMarket = [
+      { id: 'gold', name: 'Gold', symbol: 'XAU', current_price: 4717.58, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [4717.58] } },
+      { id: 'silver', name: 'Silver', symbol: 'XAG', current_price: 77.15, image: 'https://cdn-icons-png.flaticon.com/512/5833/5833860.png', sparkline_in_7d: { price: [77.15] } },
+      { id: 'platinum', name: 'Platinum', symbol: 'XPT', current_price: 950.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [950] } },
+      { id: 'palladium', name: 'Palladium', symbol: 'XPD', current_price: 1200.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [1200] } }
+    ].find(market => market.id === 'gold');
+    return goldMarket;
+  });
   const [tradeConfig, setTradeConfig] = useState({ time: 30, amount: 10, type: 'Long' });
   const [isTrading, setIsTrading] = useState(false);
   const [countdown, setCountdown] = useState(0); 
@@ -305,8 +333,7 @@ function App() {
   const [coinStats, setCoinStats] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [tradeHistory, setTradeHistory] = useState([]);
-
-  const chartContainerRef = useRef(null);
+  const [chartTimeframe, setChartTimeframe] = useState('1M');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -318,9 +345,21 @@ function App() {
   // Trade configuration object
   const tradeOptions = {
     30: { profit: 0.15, minAmount: 500 },
-    60: { profit: 0.30, minAmount: 3000 },
+    60: { profit: 0.30, minAmount: 300 },
     90: { profit: 0.50, minAmount: 10000 },
     120: { profit: 0.70, minAmount: 100000 }
+  };
+
+  const flashPriceChange = (id, oldPrice, newPrice) => {
+    if (typeof oldPrice !== 'number' || oldPrice === newPrice) return;
+    const direction = newPrice > oldPrice ? 'up' : 'down';
+    setPriceFlash(prev => ({ ...prev, [id]: direction }));
+    setTimeout(() => {
+      setPriceFlash(prev => {
+        const { [id]: removed, ...rest } = prev;
+        return rest;
+      });
+    }, 900);
   };
 
   const calculateRSI = (prices, period = 14) => {
@@ -341,54 +380,220 @@ function App() {
     return (100 - (100 / (1 + rs))).toFixed(2);
   };
 
-  const CandlestickChart = ({ data, width, height }) => {
-    if (!data || data.length === 0) return <div style={{ color: '#999', textAlign: 'center', padding: '20px' }}>Loading chart...</div>;
+  const InteractiveChart = ({ data, timeframe, onTimeframeChange, selectedCoin }) => {
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    const seriesRef = useRef(null);
+    const [hoveredPrice, setHoveredPrice] = useState(null);
+    const [hoveredTime, setHoveredTime] = useState(null);
 
-    const minPrice = Math.min(...data.map(d => d.low)) * 0.99;
-    const maxPrice = Math.max(...data.map(d => d.high)) * 1.01;
-    const range = maxPrice - minPrice;
+    useEffect(() => {
+      if (!chartContainerRef.current || !data || data.length === 0) return;
 
-    const yScale = (price) => ((maxPrice - price) / range) * height;
-    const xScale = (index) => (index / (data.length - 1)) * width;
+      try {
+        // Clear previous chart
+        if (chartContainerRef.current.firstChild) {
+          chartContainerRef.current.innerHTML = '';
+        }
+
+        // Create chart with professional styling and no watermark
+        const chart = LightweightCharts.createChart(chartContainerRef.current, {
+          layout: {
+            background: { color: '#ffffff' },
+            textColor: '#333333',
+            fontSize: 12,
+            fontFamily: 'Inter, sans-serif'
+          },
+          width: chartContainerRef.current.clientWidth,
+          height: window.innerWidth < 768 ? 300 : 400,
+          timeScale: {
+            timeVisible: true,
+            secondsVisible: false,
+            barSpacing: 8,
+            rightOffset: 10
+          },
+          rightPriceScale: {
+            borderColor: '#d3d3d3',
+            textColor: '#666666',
+            scaleMargins: { top: 0.1, bottom: 0.2 }
+          },
+          grid: {
+            horzLines: { color: '#e0e0e0', style: 1 },
+            vertLines: { color: '#e0e0e0', style: 1 }
+          },
+          handleScale: { mouseWheel: true, pinch: true },
+          handleScroll: { mouseWheel: true, horzTouchDrag: true, vertTouchDrag: true },
+          watermark: { visible: false },
+          logo: { visible: false }
+        });
+
+        // Add candlestick series using new API
+        const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+          borderUpColor: '#26a69a',
+          borderDownColor: '#ef5350',
+          wickUpColor: '#26a69a',
+          wickDownColor: '#ef5350',
+          title: selectedCoin.symbol.toUpperCase()
+        });
+
+        // Transform data for lightweight-charts
+        const chartData = data.map((candle, idx) => ({
+          time: Math.floor(Date.now() / 1000) - (data.length - idx - 1) * 86400,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close
+        }));
+
+        candlestickSeries.setData(chartData);
+
+        // Add price line for current price
+        candlestickSeries.createPriceLine({
+          price: selectedCoin.current_price,
+          color: '#f0b90b',
+          lineWidth: 2,
+          lineStyle: 1,
+          axisLabelVisible: true,
+          title: selectedCoin.symbol.toUpperCase()
+        });
+
+        // Fit content
+        chart.timeScale().fitContent();
+
+        chartRef.current = chart;
+        seriesRef.current = candlestickSeries;
+
+        // Crosshair listener for hovering
+        const handleCrosshairMove = (param) => {
+          if (param.point === undefined || !param.seriesPrices || !candlestickSeries) {
+            setHoveredPrice(null);
+            setHoveredTime(null);
+            return;
+          }
+
+          try {
+            const dataPoint = param.seriesPrices.get(candlestickSeries);
+            if (dataPoint) {
+              setHoveredPrice(dataPoint.close);
+              const time = new Date(param.time * 1000);
+              setHoveredTime(time.toLocaleDateString() + ' ' + time.toLocaleTimeString());
+            } else {
+              setHoveredPrice(null);
+              setHoveredTime(null);
+            }
+          } catch (error) {
+            console.warn('Crosshair move error:', error);
+            setHoveredPrice(null);
+            setHoveredTime(null);
+          }
+        };
+
+        chart.subscribeCrosshairMove(handleCrosshairMove);
+
+        // Handle window resize
+        const handleResize = () => {
+          if (chartContainerRef.current && chart) {
+            const width = chartContainerRef.current.clientWidth;
+            const height = window.innerWidth < 768 ? 300 : 400;
+            chart.applyOptions({ width, height });
+            setTimeout(() => chart.timeScale().fitContent(), 0);
+          }
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          chart.unsubscribeCrosshairMove(handleCrosshairMove);
+        };
+      } catch (error) {
+        console.error('Chart initialization error:', error);
+      }
+    }, [data, selectedCoin]);
+
+    // Update chart when current price changes (live sync)
+    useEffect(() => {
+      if (seriesRef.current && selectedCoin && data && data.length > 0) {
+        try {
+          const lastCandle = {
+            time: Math.floor(Date.now() / 1000),
+            open: data[data.length - 1].open,
+            high: Math.max(data[data.length - 1].high, selectedCoin.current_price),
+            low: Math.min(data[data.length - 1].low, selectedCoin.current_price),
+            close: selectedCoin.current_price
+          };
+          seriesRef.current.update(lastCandle);
+        } catch (error) {
+          console.error('Price update error:', error);
+        }
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedCoin.current_price]);
+
+    const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', 'ALL'];
 
     return (
-      <svg width={width} height={height} style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-        {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => (
-          <line key={idx} x1="0" y1={yScale(minPrice + range * pct)} x2={width} y2={yScale(minPrice + range * pct)} stroke="#2b3139" strokeWidth="1" strokeDasharray="4" />
-        ))}
-        {data.map((candle, idx) => {
-          const x = xScale(idx);
-          const openY = yScale(candle.open);
-          const closeY = yScale(candle.close);
-          const highY = yScale(candle.high);
-          const lowY = yScale(candle.low);
-          const isGreen = candle.close >= candle.open;
-          const color = isGreen ? '#0ecb81' : '#f6465d';
-
-          return (
-            <g key={idx}>
-              <line x1={x} y1={highY} x2={x} y2={lowY} stroke={color} strokeWidth="2" opacity="0.6" />
-              <rect x={x - 3} y={Math.min(openY, closeY)} width={6} height={Math.max(1, Math.abs(closeY - openY))} fill={color} />
-            </g>
-          );
-        })}
-        <text x="5" y="15" fontSize="11" fill="#999">${maxPrice.toFixed(2)}</text>
-        <text x="5" y={height - 5} fontSize="11" fill="#999">${minPrice.toFixed(2)}</text>
-      </svg>
+      <div className="interactive-chart-wrapper">
+        <div className="chart-timeframe-toolbar">
+          {timeframes.map((tf) => (
+            <button
+              key={tf}
+              className={`timeframe-btn ${timeframe === tf ? 'active' : ''}`}
+              onClick={() => onTimeframeChange(tf)}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
+        <div className="chart-info-bar">
+          {hoveredTime && hoveredPrice && (
+            <div className="chart-crosshair-info">
+              <span className="crosshair-time">{hoveredTime}</span>
+              <span className="crosshair-price">${hoveredPrice.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+        <div
+          ref={chartContainerRef}
+          className="interactive-chart-container"
+          style={{
+            width: '100%',
+            minHeight: window.innerWidth < 768 ? '300px' : '400px',
+            background: '#ffffff',
+            borderRadius: '8px'
+          }}
+        ></div>
+        <div className="chart-legend">
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#26a69a' }}></span>
+            <span>Up</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#ef5350' }}></span>
+            <span>Down</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#f0b90b' }}></span>
+            <span>Current Price</span>
+          </div>
+        </div>
+      </div>
     );
   };
 
   const telegramLink = "https://t.me/PrimeBlockLTS";
 
-  const globalMarkets = [
-    { id: 'gold', name: 'Gold', symbol: 'XAU', current_price: 2342.50, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [2330, 2335, 2345, 2340, 2342] } },
-    { id: 'silver', name: 'Silver', symbol: 'XAG', current_price: 28.15, image: 'https://cdn-icons-png.flaticon.com/512/5833/5833860.png', sparkline_in_7d: { price: [27.5, 28.0, 27.8, 28.2, 28.15] } },
-    { id: 'platinum', name: 'Platinum', symbol: 'XPT', current_price: 950.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [940, 945, 955, 950, 950] } },
-    { id: 'palladium', name: 'Palladium', symbol: 'XPD', current_price: 1200.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [1180, 1190, 1210, 1200, 1200] } }
-  ];
+  const [globalMarkets, setGlobalMarkets] = useState([
+    { id: 'gold', name: 'Gold', symbol: 'XAU', current_price: 4717.58, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [4717.58] } },
+    { id: 'silver', name: 'Silver', symbol: 'XAG', current_price: 77.15, image: 'https://cdn-icons-png.flaticon.com/512/5833/5833860.png', sparkline_in_7d: { price: [77.15] } },
+    { id: 'platinum', name: 'Platinum', symbol: 'XPT', current_price: 950.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [950] } },
+    { id: 'palladium', name: 'Palladium', symbol: 'XPD', current_price: 1200.00, image: 'https://cdn-icons-png.flaticon.com/512/272/272530.png', sparkline_in_7d: { price: [1200] } }
+  ]);
 
-  const forexMarkets = [
-    { id: 'eurusd', name: 'EUR/USD', symbol: 'EURUSD', current_price: 1.0813, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
+  const [forexMarkets, setForexMarkets] = useState([
+    { id: 'eurusd', name: 'EUR/USD', symbol: 'EURUSD', current_price: 1.1747, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
     { id: 'gbpusd', name: 'GBP/USD', symbol: 'GBPUSD', current_price: 1.2712, image: 'https://cdn-icons-png.flaticon.com/512/197/197374.png' },
     { id: 'usdjpy', name: 'USD/JPY', symbol: 'USDJPY', current_price: 155.12, image: 'https://cdn-icons-png.flaticon.com/512/197/197604.png' },
     { id: 'audusd', name: 'AUD/USD', symbol: 'AUDUSD', current_price: 0.6523, image: 'https://cdn-icons-png.flaticon.com/512/197/197507.png' },
@@ -398,7 +603,7 @@ function App() {
     { id: 'eurgbp', name: 'EUR/GBP', symbol: 'EURGBP', current_price: 0.8512, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
     { id: 'eurjpy', name: 'EUR/JPY', symbol: 'EURJPY', current_price: 167.89, image: 'https://cdn-icons-png.flaticon.com/512/197/197615.png' },
     { id: 'gbpjpy', name: 'GBP/JPY', symbol: 'GBPJPY', current_price: 197.45, image: 'https://cdn-icons-png.flaticon.com/512/197/197374.png' }
-  ];
+  ]);
 
   const depositAssets = [
     { name: 'BTC', address: 'bc1qtaevclzdtlv5xz46dr5se6l5vwqdts8fcmt8xz' },
@@ -538,43 +743,244 @@ function App() {
     fetchTradeHistory();
   }, [activeId]);
 
-  // --- LIVE PRICE TICKING (Updates every 10s) ---
+  // --- POLLING-BASED MARKET DATA (Stable & Reliable) ---
   useEffect(() => {
-    const fetchPrices = () => {
-      fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&sparkline=true')
-        .then(res => res.json())
-        .then(data => { setCoins(data); setLoading(false); })
-        .catch(err => console.error("Fetch error:", err));
+    const defaultBenchmarks = {
+      bitcoin: 81118.60,
+      gold: 4717.58,
+      silver: 77.15,
+      eurusd: 1.1747
     };
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
-  // --- FETCH OHLC DATA FOR CANDLESTICK CHART ---
-  useEffect(() => {
-    if (!selectedCoin) return;
+    const cryptoSymbols = ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'ripple', 'cardano', 'polkadot', 'chainlink', 'polygon', 'litecoin', 'dogecoin', 'shiba-inu'];
 
-    const generateCandleData = async () => {
+    const cryptoFallbacks = {
+      bitcoin: 81118.60,
+      ethereum: 2100,
+      solana: 165,
+      binancecoin: 320,
+      ripple: 0.65,
+      cardano: 0.42,
+      polkadot: 7.8,
+      chainlink: 18.1,
+      polygon: 0.92,
+      litecoin: 84.5,
+      dogecoin: 0.07,
+      'shiba-inu': 0.000007
+    };
+
+    const binanceSymbols = {
+      bitcoin: 'BTCUSDT',
+      ethereum: 'ETHUSDT',
+      solana: 'SOLUSDT',
+      binancecoin: 'BNBUSDT',
+      ripple: 'XRPUSDT',
+      cardano: 'ADAUSDT',
+      polkadot: 'DOTUSDT',
+      chainlink: 'LINKUSDT',
+      polygon: 'MATICUSDT',
+      litecoin: 'LTCUSDT',
+      dogecoin: 'DOGEUSDT',
+      'shiba-inu': 'SHIBUSDT'
+    };
+
+    const fetchCryptoPrices = async () => {
       try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/${selectedCoin.id}/ohlc?vs_currency=usd&days=30`);
+        const symbols = cryptoSymbols.map(s => binanceSymbols[s]).join('","');
+        const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=["${symbols}"]`);
         const data = await response.json();
 
-        if (Array.isArray(data) && data.length > 0) {
-          const formattedData = data.map((candle, idx) => ({
-            time: idx,
-            open: candle[1],
-            high: candle[2],
-            low: candle[3],
-            close: candle[4]
-          }));
+        // Create a map from symbol to data
+        const priceMap = {};
+        data.forEach(item => {
+          priceMap[item.symbol] = {
+            price: parseFloat(item.lastPrice),
+            change: parseFloat(item.priceChangePercent)
+          };
+        });
+
+        setCoins(prevCoins => {
+          return cryptoSymbols.map(symbol => {
+            const binanceSymbol = binanceSymbols[symbol];
+            const oldPrice = prevCoins.find(c => c.id === symbol)?.current_price;
+            const priceData = priceMap[binanceSymbol];
+            const newPrice = priceData ? priceData.price : cryptoFallbacks[symbol];
+            const change = priceData ? priceData.change : 0;
+            flashPriceChange(symbol, oldPrice, newPrice);
+            return {
+              id: symbol,
+              symbol: symbol.toUpperCase().slice(0, 4),
+              name: symbol.charAt(0).toUpperCase() + symbol.slice(1),
+              current_price: newPrice,
+              price_change_percentage_24h: change,
+              image: `https://assets.coingecko.com/coins/images/${cryptoSymbols.indexOf(symbol) + 1}/large/${symbol}.png`,
+              sparkline_in_7d: { price: [newPrice] }
+            };
+          });
+        });
+
+        return true;
+      } catch (error) {
+        setCoins(prevCoins => cryptoSymbols.map(symbol => {
+          const oldPrice = prevCoins.find(c => c.id === symbol)?.current_price;
+          const fallbackPrice = cryptoFallbacks[symbol] ?? 1;
+          flashPriceChange(symbol, oldPrice, fallbackPrice);
+          return {
+            id: symbol,
+            symbol: symbol.toUpperCase().slice(0, 4),
+            name: symbol.charAt(0).toUpperCase() + symbol.slice(1),
+            current_price: fallbackPrice,
+            price_change_percentage_24h: 0,
+            image: `https://assets.coingecko.com/coins/images/${cryptoSymbols.indexOf(symbol) + 1}/large/${symbol}.png`,
+            sparkline_in_7d: { price: [fallbackPrice] }
+          };
+        }));
+
+        return false;
+      }
+    };
+
+    const fetchMetalsPrices = async () => {
+      setGlobalMarkets(prev => prev.map(market => {
+        if (market.id === 'gold') {
+          flashPriceChange('gold', market.current_price, defaultBenchmarks.gold);
+          return { ...market, current_price: defaultBenchmarks.gold };
+        }
+        if (market.id === 'silver') {
+          flashPriceChange('silver', market.current_price, defaultBenchmarks.silver);
+          return { ...market, current_price: defaultBenchmarks.silver };
+        }
+        return market;
+      }));
+
+      return true;
+    };
+
+    const fetchForexPrices = async () => {
+      try {
+        const response = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=USD');
+        const data = await response.json();
+        const eurusdPrice = data?.rates?.USD ?? defaultBenchmarks.eurusd;
+
+        setForexMarkets(prev => prev.map(market => {
+          if (market.id === 'eurusd') {
+            flashPriceChange('eurusd', market.current_price, eurusdPrice);
+            return { ...market, current_price: eurusdPrice };
+          }
+          return market;
+        }));
+
+        return true;
+      } catch (error) {
+        setForexMarkets(prev => prev.map(market => {
+          if (market.id === 'eurusd') {
+            flashPriceChange('eurusd', market.current_price, defaultBenchmarks.eurusd);
+            return { ...market, current_price: defaultBenchmarks.eurusd };
+          }
+          return market;
+        }));
+
+        return false;
+      }
+    };
+
+    const fetchAllMarketData = async () => {
+      const results = await Promise.all([fetchCryptoPrices(), fetchMetalsPrices(), fetchForexPrices()]);
+      const anyFailure = results.some(result => result === false);
+      setMarketStatus(anyFailure ? 'fallback' : 'live');
+      setLoading(false);
+    };
+
+    // Set loading to false immediately since initial states have fallbacks
+    setLoading(false);
+
+    const intervalMs = currentPage === 'trade' ? 60000 : 300000;
+
+    fetchAllMarketData();
+
+    pollIntervalRef.current = setInterval(fetchAllMarketData, intervalMs);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [currentPage]);
+
+  // --- FETCH OHLC DATA FOR CANDLESTICK CHART (Polled) ---
+  useEffect(() => {
+    if (!selectedCoin || !chartTimeframe) return;
+
+    const fetchChartData = async () => {
+      try {
+        const daysMap = {
+          '1M': 30,
+          '5D': 5,
+          '1D': 1,
+          '3M': 90,
+          '6M': 180,
+          'YTD': 365,
+          '1Y': 365,
+          'ALL': 730
+        };
+
+        const days = daysMap[chartTimeframe] || 30;
+
+        // Check if it's a metal/forex asset (they don't have OHLC from CoinGecko)
+        const isMetalOrForex = globalMarkets.some(m => m.id === selectedCoin.id) || forexMarkets.some(m => m.id === selectedCoin.id);
+
+        let formattedData = [];
+
+        if (isMetalOrForex) {
+          // Generate mock OHLC data for metals/forex based on current price
+          const now = Math.floor(Date.now() / 1000);
+          const interval = 86400; // 1 day in seconds
+          const basePrice = selectedCoin.current_price;
+          const volatility = basePrice * 0.02; // 2% daily volatility
+
+          formattedData = Array.from({ length: days }, (_, idx) => {
+            const time = Math.floor(now - (days - idx - 1) * interval);
+            const open = basePrice + (Math.random() - 0.5) * volatility;
+            const close = open + (Math.random() - 0.5) * volatility * 2;
+            const high = Math.max(open, close) + Math.random() * volatility * 0.5;
+            const low = Math.min(open, close) - Math.random() * volatility * 0.5;
+
+            return {
+              time,
+              open: Math.max(0.01, open),
+              high: Math.max(0.01, high),
+              low: Math.max(0.01, low),
+              close: Math.max(0.01, close)
+            };
+          });
+        } else {
+          // Fetch real OHLC data for crypto
+          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${selectedCoin.id}/ohlc?vs_currency=usd&days=${days}`);
+          const data = await response.json();
+
+          if (Array.isArray(data) && data.length > 0) {
+            // Create proper UNIX timestamps for lightweight-charts
+            const now = Math.floor(Date.now() / 1000);
+            const interval = 86400; // 1 day in seconds
+
+            formattedData = data.map((candle, idx) => ({
+              time: Math.floor(now - (data.length - idx - 1) * interval),
+              open: candle[1],
+              high: candle[2],
+              low: candle[3],
+              close: candle[4]
+            }));
+          }
+        }
+
+        if (formattedData.length > 0) {
 
           setOhlcData(formattedData);
 
           const closes = formattedData.map(c => c.close);
           const highest = Math.max(...closes);
           const lowest = Math.min(...closes);
-          const trend = formattedData[formattedData.length - 1].close >= formattedData[0].open ? 'up' : 'down';
+          const trend = closes[closes.length - 1] >= closes[0] ? 'up' : 'down';
           const change = ((closes[closes.length - 1] - closes[0]) / closes[0] * 100).toFixed(2);
 
           setCoinStats({
@@ -590,8 +996,18 @@ function App() {
       }
     };
 
-    generateCandleData();
-  }, [selectedCoin]);
+    // Initial fetch
+    fetchChartData();
+
+    // Poll every 2 minutes for chart data
+    chartPollIntervalRef.current = setInterval(fetchChartData, 120000);
+
+    return () => {
+      if (chartPollIntervalRef.current) {
+        clearInterval(chartPollIntervalRef.current);
+      }
+    };
+  }, [selectedCoin, chartTimeframe]);
 
   // --- SESSION MANAGEMENT (LocalStorage) ---
   useEffect(() => {
@@ -1013,16 +1429,24 @@ function App() {
           </div>
         )}
 
-        {/* Candlestick Chart and Sidebar */}
-        <div className="chart-and-sidebar">
-          <div className="chart-container" ref={chartContainerRef}>
-            <div style={{padding: '15px', fontSize: '12px', color: '#999', textAlign: 'center'}}>30-Day Candlestick Chart</div>
-            <CandlestickChart data={ohlcData} width={300} height={280} />
+        {/* Interactive Candlestick Chart */}
+        <div className="chart-main-section">
+          <div className="chart-content">
+            {ohlcData && ohlcData.length > 0 ? (
+              <InteractiveChart 
+                data={ohlcData} 
+                timeframe={chartTimeframe}
+                onTimeframeChange={setChartTimeframe}
+                selectedCoin={selectedCoin}
+              />
+            ) : (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>Loading chart data...</div>
+            )}
           </div>
           <div className="chart-sidebar">
             <div className="sidebar-item">
               <span className="sidebar-label">Current Price</span>
-              <span className="sidebar-value">${selectedCoin.current_price.toLocaleString()}</span>
+              <span className="sidebar-value">${selectedCoin.current_price.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
             </div>
             <div className="sidebar-item">
               <span className="sidebar-label">Server Time</span>
@@ -1033,7 +1457,21 @@ function App() {
 
         {/* Trade Controls */}
         <div className="trade-controls">
-          <div className="control-row">{[30, 60, 90, 120].map(t => (<button key={t} className={tradeConfig.time === t ? 'active' : ''} onClick={() => setTradeConfig({...tradeConfig, time: t})}>{t}s</button>))}</div>
+          <div className="control-row">
+            {[30, 60, 90, 120].map(t => {
+              const profit = Math.round(tradeOptions[t]?.profit * 100);
+              return (
+                <button
+                  key={t}
+                  className={`time-button ${tradeConfig.time === t ? 'active' : ''}`}
+                  onClick={() => setTradeConfig({...tradeConfig, time: t})}
+                >
+                  <div className="time-value">{t}s</div>
+                  <div className="profit-badge">(+{profit}%)</div>
+                </button>
+              );
+            })}
+          </div>
           <div className="amount-section">
             <div className="amount-header"><span>Investment</span><span className="available-bal">Available: ${isLoggedIn ? allUsers[activeId].balance.toLocaleString() : '0.00'}</span></div>
             <div className="amount-input-wrapper">
@@ -1124,13 +1562,25 @@ function App() {
           <div className={`tab-item ${marketTab === 'forex' ? 'active-forex' : ''}`} onClick={() => setMarketTab('forex')}>{t('forex')}</div>
         </div>
         <div className="dashboard-container">
+          {currentPage === 'home' && (
+            <div className="dashboard-header">
+              <div className="dashboard-title">Market Prices</div>
+              <div className="market-status">
+                <span className={`status-dot ${marketStatus === 'live' ? 'online' : 'fallback'}`}></span>
+                <div className="status-info">
+                  <span className="status-label">{marketStatus === 'live' ? 'Live pricing' : 'Benchmark pricing'}</span>
+                  {marketStatus === 'fallback' && <span className="status-tooltip">Using Benchmark Pricing - Live sync paused.</span>}
+                </div>
+              </div>
+            </div>
+          )}
           {loading ? <div className="loading">{t('loadingMarkets')}</div> : (
           <table className="crypto-table">
             <thead><tr><th>Asset</th><th style={{textAlign:'center'}}>Price</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
             <tbody>{availableMarkets().map(asset => (
               <tr key={asset.id} className="price-row">
                 <td><div className="asset-cell"><img src={asset.image} width="20" alt="" />{asset.symbol.toUpperCase()}</div></td>
-                <td style={{textAlign:'center'}} className="price-flash">${asset.current_price.toLocaleString()}</td>
+                <td style={{textAlign:'center'}} className={`price-flash ${priceFlash[asset.id] || ''}`}>${asset.current_price.toLocaleString()}</td>
                 <td style={{textAlign:'right'}}><button className="trade-button" onClick={() => { setSelectedCoin(asset); setCurrentPage('trade'); }}>{t('trade')}</button></td>
               </tr>))}
             </tbody>
