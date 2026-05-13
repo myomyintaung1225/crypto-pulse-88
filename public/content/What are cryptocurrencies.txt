@@ -1,0 +1,13 @@
+## What are cryptocurrencies?
+
+Cryptocurrencies are digital assets that typically rely on cryptography and distributed ledgers to record transfers without a single central issuer.
+
+## Why people use them
+
+- Programmable settlement on public networks
+- 24/7 market access for many instruments
+- Alternative rails for cross-border value movement
+
+## Risks to understand
+
+Prices can be volatile. Protocol upgrades, bridge vulnerabilities, and phishing remain common threats—verify sources and protect keys.

@@ -1,0 +1,15 @@
+## Executive summary
+
+This overview describes how PrimeBlock approaches market access, custody assumptions, and user responsibilities. It is informational only and not investment advice.
+
+## Platform scope
+
+PrimeBlock surfaces executable-style workflows for selected asset classes. Liquidity, spreads, and availability may vary by instrument and session.
+
+## Risk disclosure
+
+Digital assets and leveraged-style products can lose value rapidly. You should only participate with capital you can afford to lose and after understanding the relevant risks.
+
+## Technology
+
+We prioritize resilient pricing pipelines, audit-friendly logs for support cases, and iterative security reviews across releases.

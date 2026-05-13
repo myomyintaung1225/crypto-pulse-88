@@ -1,0 +1,16 @@
+## 1. Dapp Wallets
+
+Dapp wallets connect you to decentralized applications. Always verify site URLs, contract addresses, and transaction previews before you approve a signature.
+
+## 2. Login or session issues
+
+- Confirm you are using the latest app build.
+- Clear cached storage only if support advises—doing so incorrectly can interrupt saved preferences.
+
+## 3. Deposits not reflecting
+
+Network confirmations can take time during congestion. Keep your transaction hash ready when contacting support.
+
+## 4. Withdrawals delayed
+
+Security checks may add processing time. Ensure your destination address matches the correct network to avoid loss of funds.

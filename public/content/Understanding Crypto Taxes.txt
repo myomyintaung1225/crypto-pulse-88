@@ -1,0 +1,17 @@
+## Understanding crypto taxes
+
+Tax treatment depends on your country, residency, and facts of each transaction. The notes below are general information—not tax advice.
+
+## Common taxable events
+
+- Selling crypto for fiat
+- Trading one crypto for another
+- Using crypto to pay for goods or services (in many regimes)
+
+## Record keeping
+
+Keep timestamps, amounts, counterparty labels, and fees. Consistent records reduce reconciliation effort at year-end.
+
+## Professional help
+
+Consult a qualified tax professional who understands digital assets in your jurisdiction.

