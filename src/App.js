@@ -280,11 +280,12 @@ const TRANSLATIONS = {
 };
 
 const LIBRARY_FILES = {
-  'company-profile': 'about us.txt',
-  'white-paper': 'White Paper.txt',
-  'regulatory-license': 'Regulatory License.txt',
-  faq: 'Commom Problem.txt'
+  'company-profile': 'about-us',
+  'white-paper': 'white-paper',
+  'regulatory-license': 'regulatory-license',
+  faq: 'commom-problem'
 };
+
 
 const LIBRARY_LABELS = {
   'company-profile': 'Company Profile',
@@ -521,9 +522,11 @@ function AppInner() {
     let cancelled = false;
     setLibraryLoading(true);
     setLibraryError(null);
-    fetch(`/content/${encodeURIComponent(filename)}`)
 
+    const safeName = filename.toLowerCase().replace(/\s+/g, '-');
+    fetch(`/content/${safeName}.txt`)
       .then((res) => {
+
         if (!res.ok) throw new Error('Could not load this article.');
         return res.text();
       })
