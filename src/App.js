@@ -521,7 +521,8 @@ function AppInner() {
     let cancelled = false;
     setLibraryLoading(true);
     setLibraryError(null);
-    fetch(`${process.env.PUBLIC_URL}/content/${encodeURIComponent(filename)}`)
+    fetch(`/content/${encodeURIComponent(filename)}`)
+
       .then((res) => {
         if (!res.ok) throw new Error('Could not load this article.');
         return res.text();
