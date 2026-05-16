@@ -557,11 +557,26 @@ function AppInner() {
     return () => document.removeEventListener('keydown', onEsc);
   }, [drawerOpen]);
 
-  const openLibraryDoc = (key) => {
-    setLibraryDocKey(key);
-    setCurrentPage('home');
-    setDrawerOpen(false);
+const openLibraryDoc = (key) => {
+  // We use standard lowercase keys to match your existing buttons
+  const fileMapping = {
+    'company-profile': 'Company Profile.pdf',
+    'white-paper': 'White Paper.pdf',
+    'regulatory-license': 'Regulatory License.pdf',
+    'faq': 'Common Problems.pdf'
   };
+
+  const fileName = fileMapping[key];
+  if (fileName) {
+    // This tells the live website to look directly in your main root folder
+    setLibraryDocKey(`/proofs/${fileName}`);
+  } else {
+    setLibraryDocKey(key);
+  }
+  
+  setCurrentPage('home');
+  setDrawerOpen(false);
+};
 
   // Trade configuration object
   const tradeOptions = {
