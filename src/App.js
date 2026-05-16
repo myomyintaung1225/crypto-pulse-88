@@ -1836,27 +1836,7 @@ function AppInner() {
             onClick={(e) => e.stopPropagation()}
           >
             <button type="button" className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close menu">×</button>
-            <div className="drawer-section drawer-docs-section">
-              <h5 className="drawer-docs-heading">Documentation</h5>
-              <div className="drawer-docs-grid-four">
-                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('company-profile')}>
-                  <Building2 className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
-                  <span>Company Profile</span>
-                </button>
-                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('white-paper')}>
-                  <FileText className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
-                  <span>White Paper</span>
-                </button>
-                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('regulatory-license')}>
-                  <ShieldCheck className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
-                  <span>Regulatory License</span>
-                </button>
-                <button type="button" className="drawer-doc-tile" onClick={() => openLibraryDoc('faq')}>
-                  <HelpCircle className="drawer-doc-icon" size={22} strokeWidth={2} aria-hidden />
-                  <span>FAQ</span>
-                </button>
-              </div>
-            </div>
+
             {isLoggedIn && (
               <div className="drawer-profile">
                 <div className="drawer-avatar">👤</div>
@@ -1866,6 +1846,29 @@ function AppInner() {
                 </div>
               </div>
             )}
+            <div className="sidebar-docs-section" style={{ padding: '0 16px', marginBottom: '24px' }}>
+  <div style={{ color: '#F0B90B', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
+    Documentation
+  </div>
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+    <button onClick={() => openLibraryDoc('company-profile')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      <span style={{ fontSize: '16px' }}>🏢</span>
+      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>Company Profile</span>
+    </button>
+    <button onClick={() => openLibraryDoc('white-paper')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      <span style={{ fontSize: '16px' }}>📄</span>
+      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>White Paper</span>
+    </button>
+    <button onClick={() => openLibraryDoc('regulatory-license')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      <span style={{ fontSize: '16px' }}>🛡️</span>
+      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>Regulatory License</span>
+    </button>
+    <button onClick={() => openLibraryDoc('faq')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      <span style={{ fontSize: '16px' }}>❓</span>
+      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>FAQ</span>
+    </button>
+  </div>
+</div>
             <div className="drawer-section">
               <h5>Home</h5>
               <div className="drawer-item" onClick={() => { setCurrentPage('home'); setLibraryDocKey(null); setDrawerOpen(false); }}>🏠 Home</div>
