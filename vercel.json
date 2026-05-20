@@ -11,6 +11,10 @@
   ],
   "routes": [
     {
+      "src": "/proofs/(.*)",
+      "dest": "/proofs/$1"
+    },
+    {
       "src": "/static/(.*)",
       "dest": "/static/$1"
     },
