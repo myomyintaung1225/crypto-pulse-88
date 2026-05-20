@@ -474,6 +474,7 @@ function AppInner() {
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [libraryError, setLibraryError] = useState(null);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [activeDoc, setActiveDoc] = useState(null);
   const [verificationStep, setVerificationStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
@@ -557,25 +558,23 @@ function AppInner() {
     return () => document.removeEventListener('keydown', onEsc);
   }, [drawerOpen]);
 
-const openLibraryDoc = (key) => {
-  // We use standard lowercase keys to match your existing buttons
-  const fileMapping = {
-    'company-profile': 'Company Profile.pdf',
-    'white-paper': 'White Paper.pdf',
-    'regulatory-license': 'Regulatory License.pdf',
-    'faq': 'Common Problems.pdf'
-  };
+const DOC_PATHS = {
+  'common-problems': { title: 'Common Problems', path: '/proofs/Common_Problems.pdf' },
+  'company-profile': { title: 'Company Profile', path: '/proofs/Company_Profile.pdf' },
+  'forex-vs-crypto': { title: 'Forex vs Crypto Trading', path: '/proofs/Forex_vs_Crypto_Trading_which_is_right_for_you.pdf' },
+  'regulatory-license': { title: 'Regulatory License', path: '/proofs/Regulatory_License.pdf' },
+  'crypto-taxes': { title: 'Understanding Crypto Taxes', path: '/proofs/Understanding_Crypto_Taxes.pdf' },
+  'what-are-crypto': { title: 'What Are Cryptocurrencies', path: '/proofs/What_are_cryptocurrencies.pdf' },
+  'crypto-wallet': { title: 'Cryptocurrency Wallet Guide', path: '/proofs/What_is_a_cryptocurrency_wallet.pdf' },
+  'white-paper': { title: 'White Paper', path: '/proofs/White_Paper.pdf' }
+};
 
-  const fileName = fileMapping[key];
-  if (fileName) {
-    // This tells the live website to look directly in your main root folder
-    setLibraryDocKey(`/proofs/${fileName}`);
-  } else {
-    setLibraryDocKey(key);
-  }
-  
-  setCurrentPage('home');
-  setDrawerOpen(false);
+const openLibraryDoc = (title, path) => {
+  setActiveDoc({ title, path });
+};
+
+const closeDocViewer = () => {
+  setActiveDoc(null);
 };
 
   // Trade configuration object
@@ -1043,13 +1042,16 @@ const openLibraryDoc = (key) => {
             const newPrice = priceData ? priceData.price : cryptoFallbacks[symbol];
             const change = priceData ? priceData.change : 0;
             flashPriceChange(symbol, oldPrice, newPrice);
+            // Preserve the original CoinGecko image URL from prevCoins or use the correct static URL
+            const prevCoin = prevCoins.find(c => c.id === symbol);
+            const imageUrl = prevCoin?.image || `https://assets.coingecko.com/coins/images/${cryptoSymbols.indexOf(symbol) + 1}/large/${symbol}.png`;
             return {
               id: symbol,
               symbol: symbol.toUpperCase().slice(0, 4),
               name: symbol.charAt(0).toUpperCase() + symbol.slice(1),
               current_price: newPrice,
               price_change_percentage_24h: change,
-              image: `https://assets.coingecko.com/coins/images/${cryptoSymbols.indexOf(symbol) + 1}/large/${symbol}.png`,
+              image: imageUrl,
               sparkline_in_7d: { price: [newPrice] }
             };
           });
@@ -1061,13 +1063,16 @@ const openLibraryDoc = (key) => {
           const oldPrice = prevCoins.find(c => c.id === symbol)?.current_price;
           const fallbackPrice = cryptoFallbacks[symbol] ?? 1;
           flashPriceChange(symbol, oldPrice, fallbackPrice);
+          // Preserve the original CoinGecko image URL from prevCoins
+          const prevCoin = prevCoins.find(c => c.id === symbol);
+          const imageUrl = prevCoin?.image || `https://assets.coingecko.com/coins/images/${cryptoSymbols.indexOf(symbol) + 1}/large/${symbol}.png`;
           return {
             id: symbol,
             symbol: symbol.toUpperCase().slice(0, 4),
             name: symbol.charAt(0).toUpperCase() + symbol.slice(1),
             current_price: fallbackPrice,
             price_change_percentage_24h: 0,
-            image: `https://assets.coingecko.com/coins/images/${cryptoSymbols.indexOf(symbol) + 1}/large/${symbol}.png`,
+            image: imageUrl,
             sparkline_in_7d: { price: [fallbackPrice] }
           };
         }));
@@ -1827,7 +1832,21 @@ const openLibraryDoc = (key) => {
 
   return (
     <div className="app-wrapper">
-      {currentPage !== 'arbitrage' ? (
+      {activeDoc ? (
+        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#111', position: 'fixed', top: 0, left: 0, zIndex: 99999 }}>
+          <div style={{ padding: '15px', display: 'flex', alignItems: 'center', background: '#1f2937', color: '#fff', borderBottom: '1px solid #374151' }}>
+            <button 
+              onClick={() => setActiveDoc(null)} 
+              style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '4px', cursor: 'pointer', border: 'none', marginRight: '20px', fontWeight: 'bold' }}
+            >
+              ← Back to Website
+            </button>
+            <h2 style={{ margin: 0, fontSize: '18px', color: '#fff' }}>{activeDoc.title}</h2>
+          </div>
+          <iframe src={activeDoc.path} style={{ width: '100%', flex: 1, border: 'none', backgroundColor: '#fff' }} title={activeDoc.title} />
+        </div>
+      ) : (
+        currentPage !== 'arbitrage' ? (
       <>
       <header className="header">
         <div className="header-left">
@@ -1862,28 +1881,44 @@ const openLibraryDoc = (key) => {
               </div>
             )}
             <div className="sidebar-docs-section" style={{ padding: '0 16px', marginBottom: '24px' }}>
-  <div style={{ color: '#F0B90B', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
-    Documentation
-  </div>
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-    <button onClick={() => openLibraryDoc('company-profile')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-      <span style={{ fontSize: '16px' }}>🏢</span>
-      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>Company Profile</span>
-    </button>
-    <button onClick={() => openLibraryDoc('white-paper')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-      <span style={{ fontSize: '16px' }}>📄</span>
-      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>White Paper</span>
-    </button>
-    <button onClick={() => openLibraryDoc('regulatory-license')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-      <span style={{ fontSize: '16px' }}>🛡️</span>
-      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>Regulatory License</span>
-    </button>
-    <button onClick={() => openLibraryDoc('faq')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-      <span style={{ fontSize: '16px' }}>❓</span>
-      <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500' }}>FAQ</span>
-    </button>
-  </div>
-</div>
+              <div style={{ color: '#F0B90B', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
+                Documentation
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                <button onClick={() => openLibraryDoc("Common Problems", "/proofs/Common_Problems.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>🔧</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Common Problems</span>
+                </button>
+                <button onClick={() => openLibraryDoc("Company Profile", "/proofs/Company_Profile.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>🏢</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Company Profile</span>
+                </button>
+                <button onClick={() => openLibraryDoc("Forex vs Crypto Trading", "/proofs/Forex_vs_Crypto_Trading_which_is_right_for_you.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>⚖️</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Forex vs Crypto</span>
+                </button>
+                <button onClick={() => openLibraryDoc("Regulatory License", "/proofs/Regulatory_License.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>🛡️</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Regulatory License</span>
+                </button>
+                <button onClick={() => openLibraryDoc("Understanding Crypto Taxes", "/proofs/Understanding_Crypto_Taxes.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>📊</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Crypto Taxes</span>
+                </button>
+                <button onClick={() => openLibraryDoc("What Are Cryptocurrencies", "/proofs/What_are_cryptocurrencies.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>🪙</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>What Are Cryptocurrencies</span>
+                </button>
+                <button onClick={() => openLibraryDoc("Cryptocurrency Wallet Guide", "/proofs/What_is_a_cryptocurrency_wallet.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>👛</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Wallet Guide</span>
+                </button>
+                <button onClick={() => openLibraryDoc("White Paper", "/proofs/White_Paper.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '16px' }}>📄</span>
+                  <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>White Paper</span>
+                </button>
+              </div>
+            </div>
             <div className="drawer-section">
               <h5>Home</h5>
               <div className="drawer-item" onClick={() => { setCurrentPage('home'); setLibraryDocKey(null); setDrawerOpen(false); }}>🏠 Home</div>
@@ -1979,7 +2014,8 @@ const openLibraryDoc = (key) => {
           onBack={() => setCurrentPage('home')}
           onRequireLogin={() => setShowAuth(true)}
         />
-      )}
+      )
+    )}
 
       {/* Floating Support Button */}
       {currentPage === 'home' && !libraryDocKey && (
