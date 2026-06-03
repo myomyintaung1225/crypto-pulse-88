@@ -558,19 +558,150 @@ function AppInner() {
     return () => document.removeEventListener('keydown', onEsc);
   }, [drawerOpen]);
 
-const DOC_PATHS = {
-  'common-problems': { title: 'Common Problems', path: '/proofs/Common_Problems.pdf' },
-  'company-profile': { title: 'Company Profile', path: '/proofs/Company_Profile.pdf' },
-  'forex-vs-crypto': { title: 'Forex vs Crypto Trading', path: '/proofs/Forex_vs_Crypto_Trading_which_is_right_for_you.pdf' },
-  'regulatory-license': { title: 'Regulatory License', path: '/proofs/Regulatory_License.pdf' },
-  'crypto-taxes': { title: 'Understanding Crypto Taxes', path: '/proofs/Understanding_Crypto_Taxes.pdf' },
-  'what-are-crypto': { title: 'What Are Cryptocurrencies', path: '/proofs/What_are_cryptocurrencies.pdf' },
-  'crypto-wallet': { title: 'Cryptocurrency Wallet Guide', path: '/proofs/What_is_a_cryptocurrency_wallet.pdf' },
-  'white-paper': { title: 'White Paper', path: '/proofs/White_Paper.pdf' }
+const PROOF_DOCS = {
+  'common-problems': {
+    title: 'Common Problems',
+    bodyText: `## Common Problems
+
+Our platform provides fast answers and clear guidance for common trading and account issues.
+
+- Account access and login troubleshooting
+- Deposit and withdrawal timelines
+- Understanding fees and available balances
+- How to monitor order execution and payout schedules
+
+We also document how to contact support for disputes, verify transactions, and secure your wallet.
+
+## Security and Compliance
+
+Protecting user accounts with strong authentication and transaction review is a core part of our process.
+
+- Use secure passwords and unique login credentials
+- Enable two-factor authentication when available
+- Monitor account activity regularly
+- Report suspicious messages immediately`,
+  },
+  'company-profile': {
+    title: 'Company Profile',
+    bodyText: `## Company Overview
+
+PrimeBlock is designed to provide transparent AI-assisted arbitrage investing for modern digital asset portfolios.
+
+- Founded to simplify cross-exchange trading opportunities
+- Focused on secure fund handling and professional risk controls
+- Built for both new and experienced digital asset investors
+
+## What We Deliver
+
+Our company combines algorithmic analysis, exchange screening, and portfolio allocation guidance.
+
+- Intelligent capital allocation across instruments
+- Risk-aware position sizing and diversification
+- Detailed reporting and on-chain proof where available`,
+  },
+  'forex-vs-crypto': {
+    title: 'Forex vs Crypto Trading',
+    bodyText: `## Forex vs Crypto Trading
+
+Forex trading centers on traditional currency pairs, while crypto trading deals with digital asset markets.
+
+- Forex markets are usually regulated and have established liquidity
+- Crypto markets operate 24/7 with higher volatility
+- Both markets require price discovery, risk management, and execution discipline
+
+## Key Differences
+
+- Asset base: fiat currencies vs digital tokens
+- Volume drivers: macroeconomic data vs network adoption and token flows
+- Volatility: crypto can move rapidly; forex is generally more stable`,
+  },
+  'regulatory-license': {
+    title: 'Regulatory License',
+    bodyText: `## Regulatory License
+
+This document summarizes our compliance approach and the licenses that underpin our operation.
+
+- We maintain appropriate regulatory disclosures for the jurisdictions we serve
+- Compliance covers anti-money laundering, know-your-customer, and transaction monitoring
+- Our policies are designed to protect customer funds and maintain transparency
+
+## Ongoing Review
+
+We continually review licensing and compliance requirements to adapt to evolving market rules and to ensure trust.
+
+- Regular audit and compliance assessments
+- Updated customer due diligence procedures
+- Secure operations aligned with legal standards`,
+  },
+  'crypto-taxes': {
+    title: 'Understanding Crypto Taxes',
+    bodyText: `## Understanding Crypto Taxes
+
+Cryptocurrency taxation can vary by jurisdiction, but the general principles are similar across many regions.
+
+- Crypto gains are often taxed as capital gains or ordinary income
+- Tracking purchase price, sale price, and holding period is critical
+- Record your transactions carefully for accurate reporting
+
+## Practical Guidance
+
+- Keep a log of deposits, withdrawals, and trades
+- Understand how your local tax agency treats crypto income
+- Consult a licensed tax professional for specific advice`,
+  },
+  'what-are-crypto': {
+    title: 'What Are Cryptocurrencies',
+    bodyText: `## What Are Cryptocurrencies?
+
+Cryptocurrencies are digital assets secured by cryptography and often processed using distributed ledger technology.
+
+- They can be used for value transfer, payments, and programmable finance
+- Many crypto tokens run on public blockchain networks like Bitcoin or Ethereum
+- Ownership is recorded via private keys and wallet addresses
+
+## Why They Matter
+
+- They enable global, censorship-resistant transfers
+- They introduce new ways to store and move value
+- They support decentralized applications and smart contracts`,
+  },
+  'crypto-wallet': {
+    title: 'Cryptocurrency Wallet Guide',
+    bodyText: `## Cryptocurrency Wallet Guide
+
+A crypto wallet stores the keys that give you access to your digital currency.
+
+- Software wallets run on your device or browser
+- Hardware wallets store keys offline for greater security
+- Custodial wallets are managed by a service provider
+
+## Best Practices
+
+- Back up your seed phrase securely
+- Keep your private keys private
+- Use strong device protection to prevent unauthorized access`,
+  },
+  'white-paper': {
+    title: 'White Paper',
+    bodyText: `## White Paper
+
+This white paper explains PrimeBlock's mission, the AI arbitrage product, and how funds are managed.
+
+- We focus on systematic price discovery across multiple exchanges
+- Our model uses risk controls to manage exposure and lock in returns
+- Transparent performance reporting is part of the user experience
+
+## Investment Philosophy
+
+- Capital preservation is a primary objective
+- Performance is driven by disciplined arbitrage execution
+- Each investment tier is designed for a distinct risk/reward profile`,
+  },
 };
 
-const openLibraryDoc = (title, path) => {
-  setActiveDoc({ title, path });
+const openLibraryDoc = (docKey) => {
+  if (!PROOF_DOCS[docKey]) return;
+  setActiveDoc({ key: docKey, title: PROOF_DOCS[docKey].title });
 };
 
 const closeDocViewer = () => {
@@ -1833,17 +1964,28 @@ const closeDocViewer = () => {
   return (
     <div className="app-wrapper">
       {activeDoc ? (
-        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#111', position: 'fixed', top: 0, left: 0, zIndex: 99999 }}>
-          <div style={{ padding: '15px', display: 'flex', alignItems: 'center', background: '#1f2937', color: '#fff', borderBottom: '1px solid #374151' }}>
+        <div style={{ width: '100vw', minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0b0f14', position: 'fixed', top: 0, left: 0, zIndex: 99999 }}>
+          <div style={{ padding: '15px', display: 'flex', alignItems: 'center', background: '#111827', color: '#fff', borderBottom: '1px solid #374151' }}>
             <button 
-              onClick={() => setActiveDoc(null)} 
-              style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '4px', cursor: 'pointer', border: 'none', marginRight: '20px', fontWeight: 'bold' }}
+              onClick={closeDocViewer} 
+              style={{ padding: '8px 16px', backgroundColor: '#2563eb', color: 'white', borderRadius: '6px', cursor: 'pointer', border: 'none', marginRight: '20px', fontWeight: '700' }}
             >
               ← Back to Website
             </button>
             <h2 style={{ margin: 0, fontSize: '18px', color: '#fff' }}>{activeDoc.title}</h2>
           </div>
-          <iframe src={activeDoc.path} style={{ width: '100%', flex: 1, border: 'none', backgroundColor: '#fff' }} title={activeDoc.title} />
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', background: '#0d1118' }}>
+            <div className="library-view-wrap">
+              <article className="library-content-card">
+                <div className="glass-toolbar glass-toolbar--doc">
+                  <h1 className="library-view-title">{activeDoc.title}</h1>
+                </div>
+                <div className="library-formatted-body">
+                  {formatLibraryDoc(PROOF_DOCS[activeDoc.key]?.bodyText || 'No content available for this document.')}
+                </div>
+              </article>
+            </div>
+          </div>
         </div>
       ) : (
         currentPage !== 'arbitrage' ? (
@@ -1885,35 +2027,35 @@ const closeDocViewer = () => {
                 Documentation
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                <button onClick={() => openLibraryDoc("Common Problems", "/proofs/Common_Problems.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('common-problems')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>🔧</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Common Problems</span>
                 </button>
-                <button onClick={() => openLibraryDoc("Company Profile", "/proofs/Company_Profile.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('company-profile')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>🏢</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Company Profile</span>
                 </button>
-                <button onClick={() => openLibraryDoc("Forex vs Crypto Trading", "/proofs/Forex_vs_Crypto_Trading_which_is_right_for_you.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('forex-vs-crypto')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>⚖️</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Forex vs Crypto</span>
                 </button>
-                <button onClick={() => openLibraryDoc("Regulatory License", "/proofs/Regulatory_License.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('regulatory-license')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>🛡️</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Regulatory License</span>
                 </button>
-                <button onClick={() => openLibraryDoc("Understanding Crypto Taxes", "/proofs/Understanding_Crypto_Taxes.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('crypto-taxes')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>📊</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Crypto Taxes</span>
                 </button>
-                <button onClick={() => openLibraryDoc("What Are Cryptocurrencies", "/proofs/What_are_cryptocurrencies.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('what-are-crypto')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>🪙</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>What Are Cryptocurrencies</span>
                 </button>
-                <button onClick={() => openLibraryDoc("Cryptocurrency Wallet Guide", "/proofs/What_is_a_cryptocurrency_wallet.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('crypto-wallet')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>👛</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>Wallet Guide</span>
                 </button>
-                <button onClick={() => openLibraryDoc("White Paper", "/proofs/White_Paper.pdf")} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <button onClick={() => openLibraryDoc('white-paper')} style={{ background: '#141414', border: '1px solid #2d2d2d', borderRadius: '8px', padding: '12px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '16px' }}>📄</span>
                   <span style={{ color: '#fff', fontSize: '11px', fontWeight: '500', textAlign: 'center' }}>White Paper</span>
                 </button>

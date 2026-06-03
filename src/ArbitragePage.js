@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   collection,
   doc,
@@ -32,6 +32,26 @@ import './ArbitragePage.css';
 
 const RULE_MODAL_TITLE = 'What is AI Arbitrage?';
 
+const COOLDOWN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+function generateRandomProfitRate(plan) {
+  const [minProfit, maxProfit] = parseProfitRange(plan.profitLabel);
+  if (!Number.isFinite(minProfit) || !Number.isFinite(maxProfit) || maxProfit < minProfit) {
+    return minProfit || 0;
+  }
+  const rate = minProfit + Math.random() * (maxProfit - minProfit);
+  return Number(rate.toFixed(4));
+}
+
+function buildProfitValues(amount, profitRate) {
+  const totalProfit = Number((amount * (profitRate / 100)).toFixed(2));
+  const totalReturn = Number((amount + totalProfit).toFixed(2));
+  return { totalProfit, totalReturn };
+}
+
+function getCooldownWindowStart() {
+  return new Date(Date.now() - COOLDOWN_WINDOW_MS);
+}
 
 const RULE_PARAGRAPHS = [
   'AI Arbitrage is a smart engine that balances your funds, buys low and sells high, and captures systematic spread opportunities across 200+ exchanges.',
@@ -123,7 +143,7 @@ function ArbCompletionModal({ open, amount, onContinue }) {
       <div className="arb-modal glass-modal arb-completion" onClick={(e) => e.stopPropagation()}>
         <h3 className="arb-completion-title">Arbitrage Plan Finished</h3>
         <p className="arb-completion-body">
-          Your investment and profit of <strong>${Number(amount).toLocaleString()}</strong> USDT has been successfully transferred to your wallet.
+          Your investment plus profit of <strong>${Number(amount).toLocaleString()}</strong> USDT has been successfully returned to your wallet.
         </p>
         <div className="arb-completion-actions">
           <button type="button" className="arb-btn-primary" onClick={onContinue}>
@@ -147,6 +167,7 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
   const [submitBusy, setSubmitBusy] = useState(false);
   const [pageBalance, setPageBalance] = useState(userBalance);
   const [completedAmount, setCompletedAmount] = useState(0);
+  const completingOrderIdsRef = useRef(new Set());
 
   useEffect(() => {
     setEscrowInput('');
@@ -160,40 +181,57 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
   const completeEscrowOrder = useCallback(
     async (order) => {
       if (!order?.id) return;
+      if (completingOrderIdsRef.current.has(order.id)) return;
+      completingOrderIdsRef.current.add(order.id);
+
       const plan = ARBITRAGE_PLANS_BY_ID[order.planId];
-      if (!plan) return;
+      if (!plan) {
+        completingOrderIdsRef.current.delete(order.id);
+        return;
+      }
 
-      const initialAmount = Number(order.initialAmount ?? order.amount) || 0;
-      const durationDays = Number(order.durationDays ?? 0);
-
-      const [minProfit, maxProfit] = parseProfitRange(plan.profitLabel);
-      const avgProfitPercent = (minProfit + maxProfit) / 2;
-      const totalProfit = initialAmount * (avgProfitPercent / 100) * durationDays;
-      const totalReturn = initialAmount + totalProfit;
+      let completedTotalReturn = 0;
+      let completedTotalProfit = 0;
 
       try {
         await runTransaction(db, async (tx) => {
+          const orderRef = doc(db, 'escrow_orders', order.id);
+          const orderSnap = await tx.get(orderRef);
+          if (!orderSnap.exists()) return;
+          const orderData = orderSnap.data();
+          if (orderData.status !== 'active') return;
+
           const userRef = doc(db, 'users', userId);
           const userSnap = await tx.get(userRef);
           if (!userSnap.exists()) throw new Error('User not found');
 
           const currentBalance = Number(userSnap.data().balance) || 0;
+          const initialAmount = Number(orderData.initialAmount ?? orderData.amount) || 0;
+          const profitRate = Number(orderData.profitRate ?? generateRandomProfitRate(plan));
+          const { totalProfit, totalReturn } = buildProfitValues(initialAmount, profitRate);
 
-          const orderRef = doc(db, 'escrow_orders', order.id);
+          completedTotalProfit = totalProfit;
+          completedTotalReturn = totalReturn;
+
           tx.update(orderRef, {
             status: 'completed',
             completedAt: new Date(),
             totalProfit,
-            totalReturn
+            totalReturn,
+            profitRate
           });
 
           tx.update(userRef, { balance: currentBalance + totalReturn });
         });
 
-        setCompletedAmount(totalReturn);
-        setPageBalance((prev) => prev + totalReturn);
+        if (completedTotalReturn > 0) {
+          setCompletedAmount(completedTotalReturn);
+          setPageBalance((prev) => prev + completedTotalReturn);
+        }
       } catch (e) {
         console.error('Failed to complete escrow order:', e);
+      } finally {
+        completingOrderIdsRef.current.delete(order.id);
       }
     },
     [userId]
@@ -298,9 +336,8 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
   };
 
 
-  const countMonthlyPlanPurchases = async (planId) => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const countRecentPlanOrders = async (planId) => {
+    const windowStart = getCooldownWindowStart();
     const planOrders = await getDocs(
       query(
         collection(db, 'escrow_orders'),
@@ -309,17 +346,15 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
         orderBy('createdAt', 'desc')
       )
     );
-    const monthlyOrders = planOrders.docs.filter(doc => {
-      const data = doc.data();
-      const createdAt = data.createdAt;
-      return createdAt && createdAt.toDate() >= monthStart;
-    });
-    return monthlyOrders.length;
+    return planOrders.docs.filter((doc) => {
+      const createdAt = doc.data().createdAt;
+      return createdAt && createdAt.toDate() >= windowStart;
+    }).length;
   };
 
-  const isMonthlyLimitReached = async (plan) => {
+  const isPlanCooldownBlocked = async (plan) => {
     if (!plan || !userId) return false;
-    const count = await countMonthlyPlanPurchases(plan.id);
+    const count = await countRecentPlanOrders(plan.id);
     return count >= plan.participationLimit;
   };
 
@@ -330,8 +365,8 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
       alert('Please wait for your current plan to finish before starting a new one.');
       return;
     }
-    if (await isMonthlyLimitReached(plan)) {
-      alert('Monthly participation limit reached for this plan.');
+    if (await isPlanCooldownBlocked(plan)) {
+      alert(`You have reached the ${plan.participationLimit}-investment limit for ${plan.name} within the last 30 days. Please wait until the cooldown period expires.`);
       return;
     }
 
@@ -340,22 +375,17 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
       alert('Please enter a valid quantity.');
       return;
     }
+    if (amt < plan.minAmount || amt > plan.maxAmount) {
+      alert(`Amount must be between $${plan.minAmount.toLocaleString()} and $${plan.maxAmount.toLocaleString()}.`);
+      return;
+    }
+    if (amt > userBalance) {
+      alert('Insufficient balance.');
+      return;
+    }
 
     setSubmitBusy(true);
     try {
-      // participation limit per plan (count active completed not considered)
-      const allOrders = await getDocs(
-        query(collection(db, 'escrow_orders'), where('userId', '==', userId))
-      );
-      const activeForPlan = allOrders.docs
-        .map((d) => d.data())
-        .filter((d) => d.planId === plan.id && d.status === 'active').length;
-
-      if (activeForPlan >= plan.participationLimit) {
-        throw new Error('Participation limit reached for this plan');
-      }
-
-      // Create escrow_orders inside transaction and subtract balance
       await runTransaction(db, async (tx) => {
         const userRef = doc(db, 'users', userId);
         const userSnap = await tx.get(userRef);
@@ -363,6 +393,7 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
         const balance = Number(userSnap.data().balance) || 0;
         if (balance < amt) throw new Error('Insufficient balance');
 
+        const profitRate = generateRandomProfitRate(plan);
         const orderRef = doc(collection(db, 'escrow_orders'));
         tx.set(orderRef, {
           userId,
@@ -370,6 +401,7 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
           planName: plan.name,
           amount: amt,
           initialAmount: amt,
+          profitRate,
           durationDays: Number.parseInt(plan.listBadge, 10) || 0,
           profitLabel: plan.profitLabel,
           participationLimit: plan.participationLimit,
@@ -407,17 +439,12 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
       alert('Please wait for your current plan to finish before starting a new one.');
       return;
     }
-    if (await isMonthlyLimitReached(plan)) {
-      alert('Monthly participation limit reached for this plan.');
+    if (await isPlanCooldownBlocked(plan)) {
+      alert(`You have reached the ${plan.participationLimit}-investment limit for ${plan.name} within the last 30 days. Please wait until the cooldown period expires.`);
       return;
     }
     if (pageBalance < plan.minAmount) {
       alert('Insufficient wallet balance.');
-      return;
-    }
-    const n = countPlanPledges(plan.id);
-    if (n >= plan.participationLimit) {
-      alert(`Participation limit reached for this plan (${plan.participationLimit}/Person).`);
       return;
     }
     await submitPledge(plan, plan.minAmount);
@@ -445,18 +472,13 @@ export default function ArbitragePage({ userId, userBalance, isLoggedIn, onBack,
       return;
     }
     if (!selectedPlan) return;
-    if (await isMonthlyLimitReached(selectedPlan)) {
-      alert('Monthly participation limit reached for this plan.');
+    if (await isPlanCooldownBlocked(selectedPlan)) {
+      alert(`You have reached the ${selectedPlan.participationLimit}-investment limit for ${selectedPlan.name} within the last 30 days. Please wait until the cooldown period expires.`);
       return;
     }
     const { ok, amount, error } = clampAndValidateAmountForPlan(selectedPlan, escrowInput);
     if (!ok) {
       alert(error);
-      return;
-    }
-    const n = countPlanPledges(selectedPlan.id);
-    if (n >= selectedPlan.participationLimit) {
-      alert(`Participation limit reached for this plan (${selectedPlan.participationLimit}/Person).`);
       return;
     }
     setConfirmOpen(true);
